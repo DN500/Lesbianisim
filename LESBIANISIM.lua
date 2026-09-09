@@ -28,9 +28,34 @@ local fullBrightEnabled = false
 local autoHopEnabled = false
 local minimized = false
 local bossListOpen = false
+local filterOpen = false
 
 local hopMinutes = 10
 local hopTimer = hopMinutes * 60
+
+------------------ BOSS MODULE (EASY TO ADD) ------------------
+local Bosses = {
+	{
+		Name = "The Festering",
+		CFrame = CFrame.new(
+			1339.49951, -553.002441, 382.000061,
+			0, 0, 1,
+			1, 0, 0,
+			0, 1, 0
+		)
+	},
+	{
+		Name = "Cell Of Life",
+		CFrame = CFrame.new(448.2, -914.7, -2966)
+	},
+
+	-- ========== ADD NEW BOSSES HERE ==========
+	-- {
+	-- 	Name = "Boss Name",
+	-- 	CFrame = CFrame.new(X, Y, Z)
+	-- },
+}
+---------------------------------------------------------------
 
 -- Fog
 local function deleteAtmosphere()
@@ -103,71 +128,45 @@ local function saveConfig()
 end
 loadConfig()
 
--- ========== SMART SERVER HOP ==========
+-- Smart Server Hop
 local function getLowPlayerServers()
 	local servers = {}
 	local cursor = ""
-	
 	for i = 1, 4 do
 		local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-		if cursor ~= "" then
-			url = url .. "&cursor=" .. cursor
-		end
-		
+		if cursor ~= "" then url = url .. "&cursor=" .. cursor end
 		local success, result = pcall(function()
 			return HttpService:JSONDecode(game:HttpGet(url))
 		end)
-		
 		if success and result and result.data then
 			for _, server in ipairs(result.data) do
 				local playing = server.playing or 0
 				local jobId = server.id
-				
 				if playing >= 1 and playing <= 3 and jobId ~= game.JobId then
-					table.insert(servers, {
-						id = jobId,
-						playing = playing
-					})
+					table.insert(servers, {id = jobId, playing = playing})
 				end
 			end
-			
 			cursor = result.nextPageCursor or ""
 			if cursor == "" then break end
-		else
-			break
-		end
+		else break end
 	end
-	
-	table.sort(servers, function(a, b)
-		return a.playing < b.playing
-	end)
-	
+	table.sort(servers, function(a, b) return a.playing < b.playing end)
 	return servers
 end
 
 local function smartServerHop()
 	local servers = getLowPlayerServers()
-	
 	if #servers == 0 then
-		warn("[Server Hop] No 1-3 player servers found")
-		pcall(function()
-			TeleportService:Teleport(game.PlaceId, LocalPlayer)
-		end)
+		pcall(function() TeleportService:Teleport(game.PlaceId, LocalPlayer) end)
 		return
 	end
-	
 	local target = servers[1]
 	print("[Server Hop] Joining server with", target.playing, "players")
-	
-	local success, err = pcall(function()
+	local success = pcall(function()
 		TeleportService:TeleportToPlaceInstance(game.PlaceId, target.id, LocalPlayer)
 	end)
-	
 	if not success then
-		warn("[Server Hop] Failed:", err)
-		pcall(function()
-			TeleportService:Teleport(game.PlaceId, LocalPlayer)
-		end)
+		pcall(function() TeleportService:Teleport(game.PlaceId, LocalPlayer) end)
 	end
 end
 
@@ -217,9 +216,7 @@ MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinBtn.Font = Enum.Font.GothamBold
 MinBtn.TextSize = 18
 MinBtn.Parent = TitleBar
-local MinCorner = Instance.new("UICorner")
-MinCorner.CornerRadius = UDim.new(0, 6)
-MinCorner.Parent = MinBtn
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
 
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 26, 0, 26)
@@ -230,9 +227,7 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 14
 CloseBtn.Parent = TitleBar
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 6)
-CloseCorner.Parent = CloseBtn
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
 CloseBtn.MouseButton1Click:Connect(function()
 	saveConfig()
@@ -265,7 +260,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- Resize Handle
+-- Resize
 local ResizeHandle = Instance.new("TextButton")
 ResizeHandle.Size = UDim2.new(0, 16, 0, 16)
 ResizeHandle.Position = UDim2.new(1, -16, 1, -16)
@@ -273,13 +268,9 @@ ResizeHandle.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 ResizeHandle.Text = ""
 ResizeHandle.AutoButtonColor = false
 ResizeHandle.Parent = MainFrame
-local rhC = Instance.new("UICorner")
-rhC.CornerRadius = UDim.new(0, 4)
-rhC.Parent = ResizeHandle
+Instance.new("UICorner", ResizeHandle).CornerRadius = UDim.new(0, 4)
 
-local resizing = false
-local resizeStart, startSize
-
+local resizing, resizeStart, startSize
 ResizeHandle.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		resizing = true
@@ -287,19 +278,13 @@ ResizeHandle.InputBegan:Connect(function(input)
 		startSize = MainFrame.Size
 	end
 end)
-
 ResizeHandle.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		resizing = false
-	end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then resizing = false end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
 	if resizing and input.UserInputType == Enum.UserInputType.MouseMovement then
 		local delta = input.Position - resizeStart
-		local newWidth = math.clamp(startSize.X.Offset + delta.X, 240, 500)
-		local newHeight = math.clamp(startSize.Y.Offset + delta.Y, 120, 850)
-		MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+		MainFrame.Size = UDim2.new(0, math.clamp(startSize.X.Offset + delta.X, 240, 500), 0, math.clamp(startSize.Y.Offset + delta.Y, 120, 850))
 	end
 end)
 
@@ -317,12 +302,11 @@ local layout = Instance.new("UIListLayout")
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Padding = UDim.new(0, 6)
 layout.Parent = Content
-
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	Content.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
 end)
 
--- Checkbox helper
+-- Helper
 local function createCheckbox(text, default)
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, 0, 0, 26)
@@ -338,9 +322,7 @@ local function createCheckbox(text, default)
 	box.Font = Enum.Font.GothamBold
 	box.TextSize = 14
 	box.Parent = frame
-	local bc = Instance.new("UICorner")
-	bc.CornerRadius = UDim.new(0, 5)
-	bc.Parent = box
+	Instance.new("UICorner", box).CornerRadius = UDim.new(0, 5)
 
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, -30, 1, 0)
@@ -352,16 +334,52 @@ local function createCheckbox(text, default)
 	label.TextSize = 13
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = frame
-
 	return box
 end
 
-local FarmCheck = createCheckbox("Auto Farm", false)
+-- Auto Farm + Filter button
+local FarmRow = Instance.new("Frame")
+FarmRow.Size = UDim2.new(1, 0, 0, 28)
+FarmRow.BackgroundTransparency = 1
+FarmRow.Parent = Content
+
+local FarmCheck = Instance.new("TextButton")
+FarmCheck.Size = UDim2.new(0, 22, 0, 22)
+FarmCheck.Position = UDim2.new(0, 0, 0, 3)
+FarmCheck.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+FarmCheck.Text = ""
+FarmCheck.TextColor3 = Color3.fromRGB(255, 255, 255)
+FarmCheck.Font = Enum.Font.GothamBold
+FarmCheck.TextSize = 14
+FarmCheck.Parent = FarmRow
+Instance.new("UICorner", FarmCheck).CornerRadius = UDim.new(0, 5)
+
+local FarmLabel = Instance.new("TextLabel")
+FarmLabel.Size = UDim2.new(0, 90, 1, 0)
+FarmLabel.Position = UDim2.new(0, 28, 0, 0)
+FarmLabel.BackgroundTransparency = 1
+FarmLabel.Text = "Auto Farm"
+FarmLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+FarmLabel.Font = Enum.Font.Gotham
+FarmLabel.TextSize = 13
+FarmLabel.TextXAlignment = Enum.TextXAlignment.Left
+FarmLabel.Parent = FarmRow
+
+local FilterBtn = Instance.new("TextButton")
+FilterBtn.Size = UDim2.new(0, 70, 0, 24)
+FilterBtn.Position = UDim2.new(1, -70, 0, 2)
+FilterBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
+FilterBtn.Text = "Filter →"
+FilterBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FilterBtn.Font = Enum.Font.GothamBold
+FilterBtn.TextSize = 12
+FilterBtn.Parent = FarmRow
+Instance.new("UICorner", FilterBtn).CornerRadius = UDim.new(0, 6)
+
 local ItemEspCheck = createCheckbox("Item ESP", false)
 local BrightCheck = createCheckbox("Full Bright", false)
 local PlayerEspCheck = createCheckbox("Player ESP", false)
 
--- Buttons
 local function createTPButton(text, color)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, 0, 0, 28)
@@ -371,16 +389,13 @@ local function createTPButton(text, color)
 	btn.Font = Enum.Font.GothamBold
 	btn.TextSize = 13
 	btn.Parent = Content
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 6)
-	c.Parent = btn
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 	return btn
 end
 
-local GemGachaBtn = createTPButton("TP Named Gem Gacha", Color3.fromRGB(120, 40, 180))
+local GemGachaBtn = createTPButton("TP Gem Gacha", Color3.fromRGB(120, 40, 180))
 local BossListBtn = createTPButton("Boss List  →", Color3.fromRGB(40, 120, 90))
 local HopBtn = createTPButton("Server Hop (1-3 Players)", Color3.fromRGB(180, 60, 60))
-
 local AutoHopCheck = createCheckbox("Auto Server Hop", false)
 
 local HopTimerFrame = Instance.new("Frame")
@@ -407,9 +422,7 @@ HopBox.Text = tostring(hopMinutes)
 HopBox.Font = Enum.Font.Gotham
 HopBox.TextSize = 12
 HopBox.Parent = HopTimerFrame
-local hbC = Instance.new("UICorner")
-hbC.CornerRadius = UDim.new(0, 5)
-hbC.Parent = HopBox
+Instance.new("UICorner", HopBox).CornerRadius = UDim.new(0, 5)
 
 local TimerLabel = Instance.new("TextLabel")
 TimerLabel.Size = UDim2.new(1, 0, 0, 18)
@@ -443,9 +456,7 @@ RarityHeader.TextColor3 = Color3.fromRGB(255, 255, 255)
 RarityHeader.Font = Enum.Font.GothamBold
 RarityHeader.TextSize = 13
 RarityHeader.Parent = Content
-local rhC = Instance.new("UICorner")
-rhC.CornerRadius = UDim.new(0, 6)
-rhC.Parent = RarityHeader
+Instance.new("UICorner", RarityHeader).CornerRadius = UDim.new(0, 6)
 
 local RarityContainer = Instance.new("Frame")
 RarityContainer.Size = UDim2.new(1, 0, 0, 0)
@@ -464,10 +475,7 @@ for i, rarity in ipairs(rarityList) do
 	btn.Font = Enum.Font.Gotham
 	btn.TextSize = 12
 	btn.Parent = RarityContainer
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 5)
-	c.Parent = btn
-
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
 	btn.MouseButton1Click:Connect(function()
 		Rarities[rarity] = not Rarities[rarity]
 		btn.BackgroundColor3 = Rarities[rarity] and Color3.fromRGB(0, 140, 70) or Color3.fromRGB(45, 45, 45)
@@ -475,61 +483,6 @@ for i, rarity in ipairs(rarityList) do
 		saveConfig()
 	end)
 end
-
--- Item Filter
-local FilterHeader = Instance.new("TextLabel")
-FilterHeader.Size = UDim2.new(1, 0, 0, 18)
-FilterHeader.BackgroundTransparency = 1
-FilterHeader.Text = "Item Filter"
-FilterHeader.TextColor3 = Color3.fromRGB(180, 180, 180)
-FilterHeader.Font = Enum.Font.GothamBold
-FilterHeader.TextSize = 12
-FilterHeader.TextXAlignment = Enum.TextXAlignment.Left
-FilterHeader.Parent = Content
-
-local FilterRow = Instance.new("Frame")
-FilterRow.Size = UDim2.new(1, 0, 0, 26)
-FilterRow.BackgroundTransparency = 1
-FilterRow.Parent = Content
-
-local NameBox = Instance.new("TextBox")
-NameBox.Size = UDim2.new(1, -60, 1, 0)
-NameBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-NameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-NameBox.PlaceholderText = "Item name..."
-NameBox.Font = Enum.Font.Gotham
-NameBox.TextSize = 12
-NameBox.Parent = FilterRow
-local nc = Instance.new("UICorner")
-nc.CornerRadius = UDim.new(0, 5)
-nc.Parent = NameBox
-
-local AddBtn = Instance.new("TextButton")
-AddBtn.Size = UDim2.new(0, 52, 1, 0)
-AddBtn.Position = UDim2.new(1, -52, 0, 0)
-AddBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-AddBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-AddBtn.Text = "Add"
-AddBtn.Font = Enum.Font.GothamBold
-AddBtn.TextSize = 12
-AddBtn.Parent = FilterRow
-local ac = Instance.new("UICorner")
-ac.CornerRadius = UDim.new(0, 5)
-ac.Parent = AddBtn
-
-local NameListFrame = Instance.new("ScrollingFrame")
-NameListFrame.Size = UDim2.new(1, 0, 0, 60)
-NameListFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-NameListFrame.BorderSizePixel = 0
-NameListFrame.ScrollBarThickness = 4
-NameListFrame.CanvasSize = UDim2.new(0,0,0,0)
-NameListFrame.Parent = Content
-local lc = Instance.new("UICorner")
-lc.CornerRadius = UDim.new(0, 5)
-lc.Parent = NameListFrame
-local ll = Instance.new("UIListLayout")
-ll.Padding = UDim.new(0, 3)
-ll.Parent = NameListFrame
 
 -- TP to Player
 local playerOpen = false
@@ -541,9 +494,7 @@ PlayerHeader.TextColor3 = Color3.fromRGB(255, 255, 255)
 PlayerHeader.Font = Enum.Font.GothamBold
 PlayerHeader.TextSize = 13
 PlayerHeader.Parent = Content
-local phC = Instance.new("UICorner")
-phC.CornerRadius = UDim.new(0, 6)
-phC.Parent = PlayerHeader
+Instance.new("UICorner", PlayerHeader).CornerRadius = UDim.new(0, 6)
 
 local PlayerFrame = Instance.new("ScrollingFrame")
 PlayerFrame.Size = UDim2.new(1, 0, 0, 0)
@@ -553,23 +504,85 @@ PlayerFrame.ScrollBarThickness = 4
 PlayerFrame.CanvasSize = UDim2.new(0,0,0,0)
 PlayerFrame.ClipsDescendants = true
 PlayerFrame.Parent = Content
-local pfC = Instance.new("UICorner")
-pfC.CornerRadius = UDim.new(0, 5)
-pfC.Parent = PlayerFrame
+Instance.new("UICorner", PlayerFrame).CornerRadius = UDim.new(0, 5)
 local pfL = Instance.new("UIListLayout")
 pfL.Padding = UDim.new(0, 3)
 pfL.Parent = PlayerFrame
 
--- ========== BOSS LIST SIDE PANEL (FIXED) ==========
+-- ========== FILTER SIDE PANEL ==========
+local FilterPanel = Instance.new("Frame")
+FilterPanel.Size = UDim2.new(0, 220, 0, 210)
+FilterPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+FilterPanel.BorderSizePixel = 0
+FilterPanel.Visible = false
+FilterPanel.Parent = ScreenGui
+Instance.new("UICorner", FilterPanel).CornerRadius = UDim.new(0, 10)
+
+local FilterTitle = Instance.new("TextLabel")
+FilterTitle.Size = UDim2.new(1, -10, 0, 30)
+FilterTitle.Position = UDim2.new(0, 8, 0, 4)
+FilterTitle.BackgroundTransparency = 1
+FilterTitle.Text = "Item Filter"
+FilterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+FilterTitle.Font = Enum.Font.GothamBold
+FilterTitle.TextSize = 14
+FilterTitle.TextXAlignment = Enum.TextXAlignment.Left
+FilterTitle.Parent = FilterPanel
+
+local FilterClose = Instance.new("TextButton")
+FilterClose.Size = UDim2.new(0, 24, 0, 24)
+FilterClose.Position = UDim2.new(1, -28, 0, 4)
+FilterClose.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+FilterClose.Text = "X"
+FilterClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+FilterClose.Font = Enum.Font.GothamBold
+FilterClose.TextSize = 12
+FilterClose.Parent = FilterPanel
+Instance.new("UICorner", FilterClose).CornerRadius = UDim.new(0, 5)
+
+local NameBox = Instance.new("TextBox")
+NameBox.Size = UDim2.new(1, -16, 0, 28)
+NameBox.Position = UDim2.new(0, 8, 0, 38)
+NameBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+NameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+NameBox.PlaceholderText = "Item name..."
+NameBox.Font = Enum.Font.Gotham
+NameBox.TextSize = 13
+NameBox.Parent = FilterPanel
+Instance.new("UICorner", NameBox).CornerRadius = UDim.new(0, 6)
+
+local AddBtn = Instance.new("TextButton")
+AddBtn.Size = UDim2.new(1, -16, 0, 28)
+AddBtn.Position = UDim2.new(0, 8, 0, 72)
+AddBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+AddBtn.Text = "Add Filter"
+AddBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AddBtn.Font = Enum.Font.GothamBold
+AddBtn.TextSize = 13
+AddBtn.Parent = FilterPanel
+Instance.new("UICorner", AddBtn).CornerRadius = UDim.new(0, 6)
+
+local NameListFrame = Instance.new("ScrollingFrame")
+NameListFrame.Size = UDim2.new(1, -16, 1, -110)
+NameListFrame.Position = UDim2.new(0, 8, 0, 108)
+NameListFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+NameListFrame.BorderSizePixel = 0
+NameListFrame.ScrollBarThickness = 4
+NameListFrame.CanvasSize = UDim2.new(0,0,0,0)
+NameListFrame.Parent = FilterPanel
+Instance.new("UICorner", NameListFrame).CornerRadius = UDim.new(0, 6)
+local NameListLayout = Instance.new("UIListLayout")
+NameListLayout.Padding = UDim.new(0, 4)
+NameListLayout.Parent = NameListFrame
+
+-- ========== BOSS LIST SIDE PANEL ==========
 local BossPanel = Instance.new("Frame")
-BossPanel.Size = UDim2.new(0, 200, 0, 160)
+BossPanel.Size = UDim2.new(0, 200, 0, 200)
 BossPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 BossPanel.BorderSizePixel = 0
 BossPanel.Visible = false
 BossPanel.Parent = ScreenGui
-local bpC = Instance.new("UICorner")
-bpC.CornerRadius = UDim.new(0, 10)
-bpC.Parent = BossPanel
+Instance.new("UICorner", BossPanel).CornerRadius = UDim.new(0, 10)
 
 local BossTitle = Instance.new("TextLabel")
 BossTitle.Size = UDim2.new(1, -10, 0, 30)
@@ -591,9 +604,7 @@ BossClose.TextColor3 = Color3.fromRGB(255, 255, 255)
 BossClose.Font = Enum.Font.GothamBold
 BossClose.TextSize = 12
 BossClose.Parent = BossPanel
-local bcC = Instance.new("UICorner")
-bcC.CornerRadius = UDim.new(0, 5)
-bcC.Parent = BossClose
+Instance.new("UICorner", BossClose).CornerRadius = UDim.new(0, 5)
 
 local BossList = Instance.new("ScrollingFrame")
 BossList.Size = UDim2.new(1, -16, 1, -40)
@@ -608,19 +619,6 @@ local BossLayout = Instance.new("UIListLayout")
 BossLayout.Padding = UDim.new(0, 6)
 BossLayout.Parent = BossList
 
--- Boss Data (easy to add more)
-local Bosses = {
-	{
-		Name = "The Festering",
-		CFrame = CFrame.new(
-			1339.49951, -553.002441, 382.000061,
-			0, 0, 1,
-			1, 0, 0,
-			0, 1, 0
-		)
-	},
-}
-
 for _, boss in ipairs(Bosses) do
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, 0, 0, 32)
@@ -630,36 +628,45 @@ for _, boss in ipairs(Bosses) do
 	btn.Font = Enum.Font.GothamBold
 	btn.TextSize = 13
 	btn.Parent = BossList
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 6)
-	c.Parent = btn
-
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 	btn.MouseButton1Click:Connect(function()
-		if HRP then
-			HRP.CFrame = boss.CFrame
-		end
+		if HRP then HRP.CFrame = boss.CFrame end
 	end)
 end
-
 BossLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	BossList.CanvasSize = UDim2.new(0, 0, 0, BossLayout.AbsoluteContentSize.Y + 10)
 end)
 
-local function updateBossPanelPosition()
-	local mainPos = MainFrame.AbsolutePosition
-	local mainSize = MainFrame.AbsoluteSize
-	BossPanel.Position = UDim2.new(0, mainPos.X + mainSize.X + 8, 0, mainPos.Y)
+-- Position updaters
+local function updateFilterPanelPosition()
+	local p = MainFrame.AbsolutePosition
+	local s = MainFrame.AbsoluteSize
+	FilterPanel.Position = UDim2.new(0, p.X + s.X + 8, 0, p.Y + 40)
 end
+local function updateBossPanelPosition()
+	local p = MainFrame.AbsolutePosition
+	local s = MainFrame.AbsoluteSize
+	BossPanel.Position = UDim2.new(0, p.X + s.X + 8, 0, p.Y)
+end
+
+FilterBtn.MouseButton1Click:Connect(function()
+	filterOpen = not filterOpen
+	FilterPanel.Visible = filterOpen
+	FilterBtn.Text = filterOpen and "Filter ←" or "Filter →"
+	if filterOpen then updateFilterPanelPosition() end
+end)
+FilterClose.MouseButton1Click:Connect(function()
+	filterOpen = false
+	FilterPanel.Visible = false
+	FilterBtn.Text = "Filter →"
+end)
 
 BossListBtn.MouseButton1Click:Connect(function()
 	bossListOpen = not bossListOpen
 	BossPanel.Visible = bossListOpen
 	BossListBtn.Text = bossListOpen and "Boss List  ←" or "Boss List  →"
-	if bossListOpen then
-		updateBossPanelPosition()
-	end
+	if bossListOpen then updateBossPanelPosition() end
 end)
-
 BossClose.MouseButton1Click:Connect(function()
 	bossListOpen = false
 	BossPanel.Visible = false
@@ -667,9 +674,11 @@ BossClose.MouseButton1Click:Connect(function()
 end)
 
 MainFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+	if filterOpen then updateFilterPanelPosition() end
 	if bossListOpen then updateBossPanelPosition() end
 end)
 MainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+	if filterOpen then updateFilterPanelPosition() end
 	if bossListOpen then updateBossPanelPosition() end
 end)
 
@@ -682,9 +691,7 @@ ConfirmFrame.BorderSizePixel = 0
 ConfirmFrame.Visible = false
 ConfirmFrame.ZIndex = 10
 ConfirmFrame.Parent = ScreenGui
-local cfC = Instance.new("UICorner")
-cfC.CornerRadius = UDim.new(0, 10)
-cfC.Parent = ConfirmFrame
+Instance.new("UICorner", ConfirmFrame).CornerRadius = UDim.new(0, 10)
 
 local ConfirmTitle = Instance.new("TextLabel")
 ConfirmTitle.Size = UDim2.new(1, -20, 0, 40)
@@ -706,9 +713,7 @@ ConfirmYes.TextColor3 = Color3.fromRGB(255, 255, 255)
 ConfirmYes.Font = Enum.Font.GothamBold
 ConfirmYes.TextSize = 13
 ConfirmYes.Parent = ConfirmFrame
-local cyC = Instance.new("UICorner")
-cyC.CornerRadius = UDim.new(0, 6)
-cyC.Parent = ConfirmYes
+Instance.new("UICorner", ConfirmYes).CornerRadius = UDim.new(0, 6)
 
 local ConfirmNo = Instance.new("TextButton")
 ConfirmNo.Size = UDim2.new(0, 90, 0, 32)
@@ -719,36 +724,31 @@ ConfirmNo.TextColor3 = Color3.fromRGB(255, 255, 255)
 ConfirmNo.Font = Enum.Font.GothamBold
 ConfirmNo.TextSize = 13
 ConfirmNo.Parent = ConfirmFrame
-local cnC = Instance.new("UICorner")
-cnC.CornerRadius = UDim.new(0, 6)
-cnC.Parent = ConfirmNo
+Instance.new("UICorner", ConfirmNo).CornerRadius = UDim.new(0, 6)
 
 local pendingPlayer = nil
-
 ConfirmYes.MouseButton1Click:Connect(function()
 	if pendingPlayer and HRP then
 		local char = pendingPlayer.Character
 		local root = char and char:FindFirstChild("HumanoidRootPart")
-		if root then
-			HRP.CFrame = root.CFrame + Vector3.new(0, 3, 0)
-		end
+		if root then HRP.CFrame = root.CFrame + Vector3.new(0, 3, 0) end
 	end
 	ConfirmFrame.Visible = false
 	pendingPlayer = nil
 end)
-
 ConfirmNo.MouseButton1Click:Connect(function()
 	ConfirmFrame.Visible = false
 	pendingPlayer = nil
 end)
 
--- Size / Minimize
+-- Minimize / Collapses
 local function updateSize()
 	if minimized then
 		MainFrame.Size = UDim2.new(0, MainFrame.Size.X.Offset, 0, 32)
 		Content.Visible = false
 		ResizeHandle.Visible = false
 		BossPanel.Visible = false
+		FilterPanel.Visible = false
 	else
 		Content.Visible = true
 		ResizeHandle.Visible = true
@@ -776,7 +776,7 @@ PlayerHeader.MouseButton1Click:Connect(function()
 	PlayerFrame.Size = UDim2.new(1, 0, 0, playerOpen and 110 or 0)
 end)
 
--- Name filter
+-- Name Filter Logic
 local function findBestMatch(input)
 	input = input:lower():gsub("^%s*(.-)%s*$", "%1")
 	if input == "" then return nil end
@@ -804,23 +804,21 @@ local function refreshNameList()
 	for name in pairs(NameFilters) do
 		count += 1
 		local btn = Instance.new("TextButton")
-		btn.Size = UDim2.new(1, -6, 0, 20)
+		btn.Size = UDim2.new(1, -6, 0, 22)
 		btn.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
 		btn.TextColor3 = Color3.fromRGB(255, 200, 200)
 		btn.Text = name .. "  X"
 		btn.Font = Enum.Font.Gotham
-		btn.TextSize = 11
+		btn.TextSize = 12
 		btn.Parent = NameListFrame
-		local c = Instance.new("UICorner")
-		c.CornerRadius = UDim.new(0, 4)
-		c.Parent = btn
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
 		btn.MouseButton1Click:Connect(function()
 			NameFilters[name] = nil
 			refreshNameList()
 			saveConfig()
 		end)
 	end
-	NameListFrame.CanvasSize = UDim2.new(0, 0, 0, count * 23)
+	NameListFrame.CanvasSize = UDim2.new(0, 0, 0, count * 26)
 end
 
 AddBtn.MouseButton1Click:Connect(function()
@@ -837,8 +835,7 @@ AddBtn.MouseButton1Click:Connect(function()
 end)
 refreshNameList()
 
--- Player list
--- Player list (with DisplayName)
+-- Player List
 local function refreshPlayerList()
 	for _, child in ipairs(PlayerFrame:GetChildren()) do
 		if child:IsA("TextButton") then child:Destroy() end
@@ -854,18 +851,12 @@ local function refreshPlayerList()
 			btn.Font = Enum.Font.Gotham
 			btn.TextSize = 12
 			btn.Parent = PlayerFrame
-
-			-- Show DisplayName + Username
 			if plr.DisplayName ~= plr.Name then
 				btn.Text = plr.DisplayName .. " (@" .. plr.Name .. ")"
 			else
 				btn.Text = plr.Name
 			end
-
-			local c = Instance.new("UICorner")
-			c.CornerRadius = UDim.new(0, 4)
-			c.Parent = btn
-
+			Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
 			btn.MouseButton1Click:Connect(function()
 				pendingPlayer = plr
 				ConfirmTitle.Text = "TP to " .. plr.DisplayName .. "?"
@@ -886,7 +877,6 @@ local GemGachaCF = CFrame.new(
 	1, 2.83718109e-05, -1.18017197e-05,
 	-1.18017197e-05, 0.709392726, 0.704813421
 )
-
 GemGachaBtn.MouseButton1Click:Connect(function()
 	if HRP then HRP.CFrame = GemGachaCF end
 end)
@@ -942,9 +932,7 @@ AutoHopCheck.MouseButton1Click:Connect(function()
 	autoHopEnabled = not autoHopEnabled
 	AutoHopCheck.Text = autoHopEnabled and "✓" or ""
 	AutoHopCheck.BackgroundColor3 = autoHopEnabled and Color3.fromRGB(200, 80, 80) or Color3.fromRGB(50, 50, 50)
-	if autoHopEnabled then
-		hopTimer = hopMinutes * 60
-	end
+	if autoHopEnabled then hopTimer = hopMinutes * 60 end
 end)
 
 HopBtn.MouseButton1Click:Connect(function()
@@ -952,9 +940,8 @@ HopBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Player ESP
-local espFolder = Instance.new("Folder")
+local espFolder = Instance.new("Folder", ScreenGui)
 espFolder.Name = "PlayerESP"
-espFolder.Parent = ScreenGui
 local espObjects = {}
 
 local function createEsp(player)
@@ -1012,7 +999,6 @@ local function updatePlayerEsp()
 		end
 	end
 end
-
 Players.PlayerRemoving:Connect(function(player)
 	if espObjects[player] then
 		espObjects[player].billboard:Destroy()
@@ -1021,9 +1007,8 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 -- Item ESP
-local itemEspFolder = Instance.new("Folder")
+local itemEspFolder = Instance.new("Folder", ScreenGui)
 itemEspFolder.Name = "ItemESP"
-itemEspFolder.Parent = ScreenGui
 local itemEspObjects = {}
 
 local function shouldShowItem(drop)
@@ -1067,13 +1052,10 @@ local function updateItemEsp()
 				label.Text = string.format("%s\n%s | %dm", drop.Name, rarity, math.floor(dist))
 			end
 		else
-			if itemEspObjects[drop] then
-				itemEspObjects[drop].Enabled = false
-			end
+			if itemEspObjects[drop] then itemEspObjects[drop].Enabled = false end
 		end
 	end
 end
-
 Drops.ChildRemoved:Connect(function(child)
 	if itemEspObjects[child] then
 		itemEspObjects[child]:Destroy()
@@ -1111,7 +1093,7 @@ task.spawn(function()
 	end
 end)
 
--- Auto Hop (stays ON)
+-- Auto Hop
 task.spawn(function()
 	while running do
 		if autoHopEnabled then
@@ -1119,7 +1101,6 @@ task.spawn(function()
 			local mins = math.floor(hopTimer / 60)
 			local secs = hopTimer % 60
 			TimerLabel.Text = string.format("Next hop in: %02d:%02d", mins, secs)
-			
 			if hopTimer <= 0 then
 				TimerLabel.Text = "Hopping to 1-3 player server..."
 				smartServerHop()
@@ -1133,4 +1114,4 @@ task.spawn(function()
 end)
 
 updateSize()
-print("[HentaiHub] Fully Loaded - Boss List Fixed")
+print("[HentaiHub] Fully Loaded | Bosses: The Festering + Cell Of Life")
