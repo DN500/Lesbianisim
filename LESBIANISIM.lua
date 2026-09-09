@@ -70,7 +70,7 @@ local Rarities = {
 	Common = false,
 	Uncommon = false,
 	Rare = false,
-	Epic = false,
+	Elite = false,
 	Legendary = false,
 }
 
@@ -223,7 +223,7 @@ RarityLabel.TextSize = 12
 RarityLabel.TextXAlignment = Enum.TextXAlignment.Left
 RarityLabel.Parent = MainFrame
 
-local rarityList = {"Common", "Uncommon", "Rare", "Epic", "Legendary"}
+local rarityList = {"Common", "Uncommon", "Rare", "Elite", "Legendary"}
 for i, rarity in ipairs(rarityList) do
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, -16, 0, 22)
