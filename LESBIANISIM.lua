@@ -1,3 +1,144 @@
+------------------ KEY SYSTEM (EASY TO EDIT) ------------------
+local KEY_SYSTEM = {
+	Enabled = true,                          -- set to false to disable key system
+	ValidKey = "HentaiHub2026",             -- your key here
+	KeyURL = "",                             -- optional: paste a raw URL that returns the key (example: pastebin raw)
+	SaveFile = "HentaiHubKey.txt",           -- where the key is remembered
+}
+---------------------------------------------------------------
+
+-- Key System Logic
+local function checkKey()
+	if not KEY_SYSTEM.Enabled then return true end
+
+	-- Already saved key?
+	if isfile and isfile(KEY_SYSTEM.SaveFile) then
+		local saved = readfile(KEY_SYSTEM.SaveFile)
+		if saved == KEY_SYSTEM.ValidKey then
+			return true
+		end
+	end
+
+	-- Optional: check from URL
+	if KEY_SYSTEM.KeyURL ~= "" then
+		local success, result = pcall(function()
+			return game:HttpGet(KEY_SYSTEM.KeyURL)
+		end)
+		if success and result then
+			local remoteKey = result:gsub("%s+", "") -- remove spaces/newlines
+			if remoteKey == KEY_SYSTEM.ValidKey then
+				if writefile then
+					writefile(KEY_SYSTEM.SaveFile, KEY_SYSTEM.ValidKey)
+				end
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
+-- Key UI
+if KEY_SYSTEM.Enabled and not checkKey() then
+	local KeyGui = Instance.new("ScreenGui")
+	KeyGui.Name = "KeySystem"
+	KeyGui.ResetOnSpawn = false
+	KeyGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+	local Frame = Instance.new("Frame")
+	Frame.Size = UDim2.new(0, 320, 0, 180)
+	Frame.Position = UDim2.new(0.5, -160, 0.5, -90)
+	Frame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+	Frame.BorderSizePixel = 0
+	Frame.Parent = KeyGui
+	Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 12)
+
+	local Title = Instance.new("TextLabel")
+	Title.Size = UDim2.new(1, 0, 0, 40)
+	Title.BackgroundTransparency = 1
+	Title.Text = "HentaiHub V2 - Key System"
+	Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Title.Font = Enum.Font.GothamBold
+	Title.TextSize = 16
+	Title.Parent = Frame
+
+	local KeyBox = Instance.new("TextBox")
+	KeyBox.Size = UDim2.new(1, -40, 0, 36)
+	KeyBox.Position = UDim2.new(0, 20, 0, 55)
+	KeyBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	KeyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	KeyBox.PlaceholderText = "Enter Key..."
+	KeyBox.Font = Enum.Font.Gotham
+	KeyBox.TextSize = 14
+	KeyBox.Text = ""
+	KeyBox.Parent = Frame
+	Instance.new("UICorner", KeyBox).CornerRadius = UDim.new(0, 8)
+
+	local SubmitBtn = Instance.new("TextButton")
+	SubmitBtn.Size = UDim2.new(1, -40, 0, 36)
+	SubmitBtn.Position = UDim2.new(0, 20, 0, 105)
+	SubmitBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 80)
+	SubmitBtn.Text = "Submit Key"
+	SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	SubmitBtn.Font = Enum.Font.GothamBold
+	SubmitBtn.TextSize = 14
+	SubmitBtn.Parent = Frame
+	Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 8)
+
+	local Status = Instance.new("TextLabel")
+	Status.Size = UDim2.new(1, -20, 0, 20)
+	Status.Position = UDim2.new(0, 10, 1, -28)
+	Status.BackgroundTransparency = 1
+	Status.Text = ""
+	Status.TextColor3 = Color3.fromRGB(255, 80, 80)
+	Status.Font = Enum.Font.Gotham
+	Status.TextSize = 12
+	Status.Parent = Frame
+
+	local verified = false
+
+	SubmitBtn.MouseButton1Click:Connect(function()
+		local input = KeyBox.Text:gsub("%s+", "")
+
+		-- Check hardcoded key
+		if input == KEY_SYSTEM.ValidKey then
+			verified = true
+		end
+
+		-- Check remote key if URL is set
+		if not verified and KEY_SYSTEM.KeyURL ~= "" then
+			local success, result = pcall(function()
+				return game:HttpGet(KEY_SYSTEM.KeyURL)
+			end)
+			if success and result then
+				local remoteKey = result:gsub("%s+", "")
+				if input == remoteKey then
+					verified = true
+					KEY_SYSTEM.ValidKey = remoteKey -- update in case it changed
+				end
+			end
+		end
+
+		if verified then
+			if writefile then
+				writefile(KEY_SYSTEM.SaveFile, KEY_SYSTEM.ValidKey)
+			end
+			Status.TextColor3 = Color3.fromRGB(0, 255, 100)
+			Status.Text = "Key Accepted! Loading..."
+			task.wait(0.8)
+			KeyGui:Destroy()
+		else
+			Status.TextColor3 = Color3.fromRGB(255, 80, 80)
+			Status.Text = "Invalid Key"
+		end
+	end)
+
+	-- Wait until key is correct
+	while not verified do
+		task.wait(0.1)
+	end
+end
+---------------------------------------------------------------
 ------------------ CONFIG ------------------
 local TP_DELAY = 1
 local CHECK_DELAY = 0.3
