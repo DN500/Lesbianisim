@@ -1,5 +1,5 @@
 ------------------ CONFIG ------------------
-local TP_DELAY = 0.50
+local TP_DELAY = 1
 local CHECK_DELAY = 0.3
 local SPAM_DELAY = 0.05
 local SAVE_FILE = "AutoFarmConfig.json"
