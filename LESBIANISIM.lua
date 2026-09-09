@@ -377,7 +377,7 @@ local function createTPButton(text, color)
 	return btn
 end
 
-local GemGachaBtn = createTPButton("TP Named Gem Gacha", Color3.fromRGB(120, 40, 180))
+local GemGachaBtn = createTPButton("TP Gem Gacha", Color3.fromRGB(120, 40, 180))
 local BossListBtn = createTPButton("Boss List  →", Color3.fromRGB(40, 120, 90))
 local HopBtn = createTPButton("Server Hop (1-3 Players)", Color3.fromRGB(180, 60, 60))
 
