@@ -1017,24 +1017,47 @@ Players.PlayerRemoving:Connect(function(player)
 	end
 end)
 
--- Item ESP
+-- Item ESP (FIXED)
 local itemEspFolder = Instance.new("Folder", ScreenGui)
 itemEspFolder.Name = "ItemESP"
 local itemEspObjects = {}
 
 local function shouldShowItem(drop)
 	local rarity = drop:GetAttribute("Rarity")
-	if not rarity or not Rarities[rarity] then return false end
+	
+	-- Check if any rarity is enabled
+	local anyRarityEnabled = false
+	for _, v in pairs(Rarities) do
+		if v then
+			anyRarityEnabled = true
+			break
+		end
+	end
+
+	-- If rarities are enabled, only show matching ones
+	if anyRarityEnabled then
+		if not rarity or not Rarities[rarity] then
+			return false
+		end
+	end
+
+	-- Name filter
 	local hasNameFilter = next(NameFilters) ~= nil
-	if hasNameFilter and not NameFilters[drop.Name] then return false end
+	if hasNameFilter and not NameFilters[drop.Name] then
+		return false
+	end
+
 	return true
 end
 
 local function updateItemEsp()
 	if not itemEspEnabled then
-		for _, obj in pairs(itemEspObjects) do if obj then obj.Enabled = false end end
+		for _, obj in pairs(itemEspObjects) do
+			if obj then obj.Enabled = false end
+		end
 		return
 	end
+
 	for _, drop in ipairs(Drops:GetChildren()) do
 		if shouldShowItem(drop) then
 			if not itemEspObjects[drop] then
@@ -1043,6 +1066,7 @@ local function updateItemEsp()
 				billboard.Size = UDim2.new(0, 180, 0, 40)
 				billboard.StudsOffset = Vector3.new(0, 2.5, 0)
 				billboard.Parent = itemEspFolder
+
 				local label = Instance.new("TextLabel")
 				label.Size = UDim2.new(1, 0, 1, 0)
 				label.BackgroundTransparency = 1
@@ -1051,22 +1075,38 @@ local function updateItemEsp()
 				label.Font = Enum.Font.GothamBold
 				label.TextSize = 12
 				label.Parent = billboard
+
 				itemEspObjects[drop] = billboard
 			end
+
 			local bb = itemEspObjects[drop]
 			local label = bb:FindFirstChildOfClass("TextLabel")
 			local rarity = drop:GetAttribute("Rarity") or "?"
 			local dist = HRP and (drop:GetPivot().Position - HRP.Position).Magnitude or 0
-			bb.Adornee = drop.PrimaryPart or drop:FindFirstChildWhichIsA("BasePart")
-			bb.Enabled = true
-			if label then
-				label.Text = string.format("%s\n%s | %dm", drop.Name, rarity, math.floor(dist))
+
+			-- Better way to find a part
+			local part = drop.PrimaryPart 
+				or drop:FindFirstChildWhichIsA("BasePart") 
+				or drop:FindFirstChild("Handle")
+				or drop:FindFirstChild("Part")
+
+			if part then
+				bb.Adornee = part
+				bb.Enabled = true
+				if label then
+					label.Text = string.format("%s\n%s | %dm", drop.Name, rarity, math.floor(dist))
+				end
+			else
+				bb.Enabled = false
 			end
 		else
-			if itemEspObjects[drop] then itemEspObjects[drop].Enabled = false end
+			if itemEspObjects[drop] then
+				itemEspObjects[drop].Enabled = false
+			end
 		end
 	end
 end
+
 Drops.ChildRemoved:Connect(function(child)
 	if itemEspObjects[child] then
 		itemEspObjects[child]:Destroy()
@@ -1125,4 +1165,4 @@ task.spawn(function()
 end)
 
 updateSize()
-print("[HentaiHub] Fully Loaded |")
+print("[HentaiHub] Fully Loaded | Bosses: The Festering + Cell Of Life")
