@@ -46,15 +46,26 @@ local Bosses = {
 	},
 	{
 		Name = "Cell Of Life",
-		CFrame = CFrame.new(448.2, -914.7, -2966)
+		CFrame = CFrame.new(446.3, -914.8, -296.6)
 	},
 
-	-- ========== ADD NEW BOSSES HERE ==========
+    {
+	Name = "The Puppeteer",
+		CFrame = CFrame.new(-1771.5, 42.5, 1760.9)
+	},
+
+	{
+	Name = "The Unfinish",
+		CFrame = CFrame.new(-2746.6, 131, -2213.6)
+	},
+	
+}
+
+-- ========== ADD NEW BOSSES HERE ==========
 	-- {
 	-- 	Name = "Boss Name",
 	-- 	CFrame = CFrame.new(X, Y, Z)
 	-- },
-}
 ---------------------------------------------------------------
 
 -- Fog
@@ -1114,4 +1125,4 @@ task.spawn(function()
 end)
 
 updateSize()
-print("[HentaiHub] Fully Loaded | Bosses: The Festering + Cell Of Life")
+print("[HentaiHub] Fully Loaded |")
