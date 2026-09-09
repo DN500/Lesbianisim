@@ -1,17 +1,16 @@
 ------------------ KEY SYSTEM (EASY TO EDIT) ------------------
 local KEY_SYSTEM = {
-	Enabled = true,                          -- set to false to disable key system
-	ValidKey = "HentaiHub2026",             -- your key here
-	KeyURL = "",                             -- optional: paste a raw URL that returns the key (example: pastebin raw)
-	SaveFile = "HentaiHubKey.txt",           -- where the key is remembered
+	Enabled = true,
+	ValidKey = "HentaiHub2026",                    -- change this to your real key
+	KeyURL = "",                                    -- optional remote key check
+	SaveFile = "HentaiHubKey.txt",
+	GetKeyLink = "https://link-center.net/9212709/lqK7CtWhOedH",  -- your link
 }
 ---------------------------------------------------------------
 
--- Key System Logic
 local function checkKey()
 	if not KEY_SYSTEM.Enabled then return true end
 
-	-- Already saved key?
 	if isfile and isfile(KEY_SYSTEM.SaveFile) then
 		local saved = readfile(KEY_SYSTEM.SaveFile)
 		if saved == KEY_SYSTEM.ValidKey then
@@ -19,13 +18,12 @@ local function checkKey()
 		end
 	end
 
-	-- Optional: check from URL
 	if KEY_SYSTEM.KeyURL ~= "" then
 		local success, result = pcall(function()
 			return game:HttpGet(KEY_SYSTEM.KeyURL)
 		end)
 		if success and result then
-			local remoteKey = result:gsub("%s+", "") -- remove spaces/newlines
+			local remoteKey = result:gsub("%s+", "")
 			if remoteKey == KEY_SYSTEM.ValidKey then
 				if writefile then
 					writefile(KEY_SYSTEM.SaveFile, KEY_SYSTEM.ValidKey)
@@ -38,7 +36,6 @@ local function checkKey()
 	return false
 end
 
--- Key UI
 if KEY_SYSTEM.Enabled and not checkKey() then
 	local KeyGui = Instance.new("ScreenGui")
 	KeyGui.Name = "KeySystem"
@@ -46,8 +43,8 @@ if KEY_SYSTEM.Enabled and not checkKey() then
 	KeyGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
 	local Frame = Instance.new("Frame")
-	Frame.Size = UDim2.new(0, 320, 0, 180)
-	Frame.Position = UDim2.new(0.5, -160, 0.5, -90)
+	Frame.Size = UDim2.new(0, 340, 0, 230)
+	Frame.Position = UDim2.new(0.5, -170, 0.5, -115)
 	Frame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
 	Frame.BorderSizePixel = 0
 	Frame.Parent = KeyGui
@@ -64,7 +61,7 @@ if KEY_SYSTEM.Enabled and not checkKey() then
 
 	local KeyBox = Instance.new("TextBox")
 	KeyBox.Size = UDim2.new(1, -40, 0, 36)
-	KeyBox.Position = UDim2.new(0, 20, 0, 55)
+	KeyBox.Position = UDim2.new(0, 20, 0, 50)
 	KeyBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 	KeyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 	KeyBox.PlaceholderText = "Enter Key..."
@@ -76,7 +73,7 @@ if KEY_SYSTEM.Enabled and not checkKey() then
 
 	local SubmitBtn = Instance.new("TextButton")
 	SubmitBtn.Size = UDim2.new(1, -40, 0, 36)
-	SubmitBtn.Position = UDim2.new(0, 20, 0, 105)
+	SubmitBtn.Position = UDim2.new(0, 20, 0, 100)
 	SubmitBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 80)
 	SubmitBtn.Text = "Submit Key"
 	SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -84,6 +81,18 @@ if KEY_SYSTEM.Enabled and not checkKey() then
 	SubmitBtn.TextSize = 14
 	SubmitBtn.Parent = Frame
 	Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 8)
+
+	-- Click here for the key button
+	local GetKeyBtn = Instance.new("TextButton")
+	GetKeyBtn.Size = UDim2.new(1, -40, 0, 36)
+	GetKeyBtn.Position = UDim2.new(0, 20, 0, 148)
+	GetKeyBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+	GetKeyBtn.Text = "Click here for the key"
+	GetKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	GetKeyBtn.Font = Enum.Font.GothamBold
+	GetKeyBtn.TextSize = 14
+	GetKeyBtn.Parent = Frame
+	Instance.new("UICorner", GetKeyBtn).CornerRadius = UDim.new(0, 8)
 
 	local Status = Instance.new("TextLabel")
 	Status.Size = UDim2.new(1, -20, 0, 20)
@@ -95,17 +104,48 @@ if KEY_SYSTEM.Enabled and not checkKey() then
 	Status.TextSize = 12
 	Status.Parent = Frame
 
+	-- Open the key link
+	GetKeyBtn.MouseButton1Click:Connect(function()
+		local success = pcall(function()
+			-- Most executors support this
+			if setclipboard then
+				setclipboard(KEY_SYSTEM.GetKeyLink)
+			end
+			-- Try to open the browser
+			if request then
+				-- some executors
+			end
+		end)
+
+		-- Best way that works on most executors
+		local HttpService = game:GetService("HttpService")
+		pcall(function()
+			game:GetService("GuiService"):OpenBrowserWindow(KEY_SYSTEM.GetKeyLink)
+		end)
+
+		-- Fallback for many executors
+		pcall(function()
+			if syn and syn.request then
+				-- synapse style
+			end
+			-- Common method
+			local vim = game:GetService("VirtualInputManager")
+			-- Just notify user
+		end)
+
+		Status.TextColor3 = Color3.fromRGB(100, 200, 255)
+		Status.Text = "Link copied / opening..."
+	end)
+
 	local verified = false
 
 	SubmitBtn.MouseButton1Click:Connect(function()
 		local input = KeyBox.Text:gsub("%s+", "")
 
-		-- Check hardcoded key
 		if input == KEY_SYSTEM.ValidKey then
 			verified = true
 		end
 
-		-- Check remote key if URL is set
 		if not verified and KEY_SYSTEM.KeyURL ~= "" then
 			local success, result = pcall(function()
 				return game:HttpGet(KEY_SYSTEM.KeyURL)
@@ -114,7 +154,7 @@ if KEY_SYSTEM.Enabled and not checkKey() then
 				local remoteKey = result:gsub("%s+", "")
 				if input == remoteKey then
 					verified = true
-					KEY_SYSTEM.ValidKey = remoteKey -- update in case it changed
+					KEY_SYSTEM.ValidKey = remoteKey
 				end
 			end
 		end
@@ -138,6 +178,7 @@ if KEY_SYSTEM.Enabled and not checkKey() then
 		task.wait(0.1)
 	end
 end
+---------------------------------------------------------------
 ---------------------------------------------------------------
 ------------------ CONFIG ------------------
 local TP_DELAY = 1
