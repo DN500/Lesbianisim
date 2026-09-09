@@ -37,35 +37,26 @@ local hopTimer = hopMinutes * 60
 local Bosses = {
 	{
 		Name = "The Festering",
-		CFrame = CFrame.new(
-			1339.49951, -553.002441, 382.000061,
-			0, 0, 1,
-			1, 0, 0,
-			0, 1, 0
-		)
+		CFrame = CFrame.new(1339.49951, -553.002441, 382.000061)
 	},
 	{
 		Name = "Cell Of Life",
 		CFrame = CFrame.new(446.3, -914.8, -296.6)
 	},
-
-    {
-	Name = "The Puppeteer",
+	{
+		Name = "The Puppeteer",
 		CFrame = CFrame.new(-1771.5, 42.5, 1760.9)
 	},
-
 	{
-	Name = "The Unfinish",
+		Name = "The Unfinish",
 		CFrame = CFrame.new(-2746.6, 131, -2213.6)
 	},
-	
-}
-
--- ========== ADD NEW BOSSES HERE ==========
+	-- ========== ADD NEW BOSSES HERE ==========
 	-- {
 	-- 	Name = "Boss Name",
 	-- 	CFrame = CFrame.new(X, Y, Z)
 	-- },
+}
 ---------------------------------------------------------------
 
 -- Fog
@@ -110,18 +101,29 @@ local NameFilters = {
 	["Stone Accord"] = true,
 }
 
+-- ========== SAVE / LOAD (NOW SAVES AUTO FARM + AUTO HOP) ==========
 local function loadConfig()
 	if isfile and isfile(SAVE_FILE) then
 		local success, data = pcall(function()
 			return HttpService:JSONDecode(readfile(SAVE_FILE))
 		end)
 		if success and data then
-			if data.Rarities then for k,v in pairs(data.Rarities) do Rarities[k] = v end end
-			if data.NameFilters then NameFilters = data.NameFilters end
+			if data.Rarities then
+				for k, v in pairs(data.Rarities) do Rarities[k] = v end
+			end
+			if data.NameFilters then
+				NameFilters = data.NameFilters
+			end
 			if data.hopMinutes then
 				hopMinutes = data.hopMinutes
 				hopTimer = hopMinutes * 60
 			end
+			-- Restore states
+			if data.enabled then enabled = data.enabled end
+			if data.autoHopEnabled then autoHopEnabled = data.autoHopEnabled end
+			if data.itemEspEnabled then itemEspEnabled = data.itemEspEnabled end
+			if data.fullBrightEnabled then fullBrightEnabled = data.fullBrightEnabled end
+			if data.espEnabled then espEnabled = data.espEnabled end
 		end
 	end
 end
@@ -132,11 +134,17 @@ local function saveConfig()
 			writefile(SAVE_FILE, HttpService:JSONEncode({
 				Rarities = Rarities,
 				NameFilters = NameFilters,
-				hopMinutes = hopMinutes
+				hopMinutes = hopMinutes,
+				enabled = enabled,
+				autoHopEnabled = autoHopEnabled,
+				itemEspEnabled = itemEspEnabled,
+				fullBrightEnabled = fullBrightEnabled,
+				espEnabled = espEnabled
 			}))
 		end)
 	end
 end
+
 loadConfig()
 
 -- Smart Server Hop
@@ -166,6 +174,9 @@ local function getLowPlayerServers()
 end
 
 local function smartServerHop()
+	-- Save everything before hopping
+	saveConfig()
+
 	local servers = getLowPlayerServers()
 	if #servers == 0 then
 		pcall(function() TeleportService:Teleport(game.PlaceId, LocalPlayer) end)
@@ -196,9 +207,7 @@ MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = MainFrame
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
 -- Title Bar
 local TitleBar = Instance.new("Frame")
@@ -211,7 +220,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "HentaiHub"
+Title.Text = "HentaiHub V2"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 15
@@ -357,8 +366,8 @@ FarmRow.Parent = Content
 local FarmCheck = Instance.new("TextButton")
 FarmCheck.Size = UDim2.new(0, 22, 0, 22)
 FarmCheck.Position = UDim2.new(0, 0, 0, 3)
-FarmCheck.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-FarmCheck.Text = ""
+FarmCheck.BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 80) or Color3.fromRGB(50, 50, 50)
+FarmCheck.Text = enabled and "✓" or ""
 FarmCheck.TextColor3 = Color3.fromRGB(255, 255, 255)
 FarmCheck.Font = Enum.Font.GothamBold
 FarmCheck.TextSize = 14
@@ -387,9 +396,9 @@ FilterBtn.TextSize = 12
 FilterBtn.Parent = FarmRow
 Instance.new("UICorner", FilterBtn).CornerRadius = UDim.new(0, 6)
 
-local ItemEspCheck = createCheckbox("Item ESP", false)
-local BrightCheck = createCheckbox("Full Bright", false)
-local PlayerEspCheck = createCheckbox("Player ESP", false)
+local ItemEspCheck = createCheckbox("Item ESP", itemEspEnabled)
+local BrightCheck = createCheckbox("Full Bright", fullBrightEnabled)
+local PlayerEspCheck = createCheckbox("Player ESP", espEnabled)
 
 local function createTPButton(text, color)
 	local btn = Instance.new("TextButton")
@@ -407,7 +416,7 @@ end
 local GemGachaBtn = createTPButton("TP Gem Gacha", Color3.fromRGB(120, 40, 180))
 local BossListBtn = createTPButton("Boss List  →", Color3.fromRGB(40, 120, 90))
 local HopBtn = createTPButton("Server Hop (1-3 Players)", Color3.fromRGB(180, 60, 60))
-local AutoHopCheck = createCheckbox("Auto Server Hop", false)
+local AutoHopCheck = createCheckbox("Auto Server Hop", autoHopEnabled)
 
 local HopTimerFrame = Instance.new("Frame")
 HopTimerFrame.Size = UDim2.new(1, 0, 0, 45)
@@ -439,7 +448,7 @@ local TimerLabel = Instance.new("TextLabel")
 TimerLabel.Size = UDim2.new(1, 0, 0, 18)
 TimerLabel.Position = UDim2.new(0, 0, 0, 24)
 TimerLabel.BackgroundTransparency = 1
-TimerLabel.Text = "Auto Hop disabled"
+TimerLabel.Text = autoHopEnabled and "Auto Hop enabled" or "Auto Hop disabled"
 TimerLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
 TimerLabel.Font = Enum.Font.Gotham
 TimerLabel.TextSize = 11
@@ -588,7 +597,7 @@ NameListLayout.Parent = NameListFrame
 
 -- ========== BOSS LIST SIDE PANEL ==========
 local BossPanel = Instance.new("Frame")
-BossPanel.Size = UDim2.new(0, 200, 0, 200)
+BossPanel.Size = UDim2.new(0, 200, 0, 220)
 BossPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 BossPanel.BorderSizePixel = 0
 BossPanel.Visible = false
@@ -752,7 +761,7 @@ ConfirmNo.MouseButton1Click:Connect(function()
 	pendingPlayer = nil
 end)
 
--- Minimize / Collapses
+-- Minimize
 local function updateSize()
 	if minimized then
 		MainFrame.Size = UDim2.new(0, MainFrame.Size.X.Offset, 0, 32)
@@ -917,6 +926,7 @@ FarmCheck.MouseButton1Click:Connect(function()
 	spamming = enabled
 	FarmCheck.Text = enabled and "✓" or ""
 	FarmCheck.BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 80) or Color3.fromRGB(50, 50, 50)
+	saveConfig()
 	if enabled then spamE() end
 end)
 
@@ -924,6 +934,7 @@ ItemEspCheck.MouseButton1Click:Connect(function()
 	itemEspEnabled = not itemEspEnabled
 	ItemEspCheck.Text = itemEspEnabled and "✓" or ""
 	ItemEspCheck.BackgroundColor3 = itemEspEnabled and Color3.fromRGB(180, 100, 255) or Color3.fromRGB(50, 50, 50)
+	saveConfig()
 end)
 
 BrightCheck.MouseButton1Click:Connect(function()
@@ -931,12 +942,14 @@ BrightCheck.MouseButton1Click:Connect(function()
 	BrightCheck.Text = fullBrightEnabled and "✓" or ""
 	BrightCheck.BackgroundColor3 = fullBrightEnabled and Color3.fromRGB(200, 160, 0) or Color3.fromRGB(50, 50, 50)
 	if fullBrightEnabled then enableFullBright() else disableFullBright() end
+	saveConfig()
 end)
 
 PlayerEspCheck.MouseButton1Click:Connect(function()
 	espEnabled = not espEnabled
 	PlayerEspCheck.Text = espEnabled and "✓" or ""
 	PlayerEspCheck.BackgroundColor3 = espEnabled and Color3.fromRGB(0, 140, 200) or Color3.fromRGB(50, 50, 50)
+	saveConfig()
 end)
 
 AutoHopCheck.MouseButton1Click:Connect(function()
@@ -944,6 +957,7 @@ AutoHopCheck.MouseButton1Click:Connect(function()
 	AutoHopCheck.Text = autoHopEnabled and "✓" or ""
 	AutoHopCheck.BackgroundColor3 = autoHopEnabled and Color3.fromRGB(200, 80, 80) or Color3.fromRGB(50, 50, 50)
 	if autoHopEnabled then hopTimer = hopMinutes * 60 end
+	saveConfig()
 end)
 
 HopBtn.MouseButton1Click:Connect(function()
@@ -1017,47 +1031,30 @@ Players.PlayerRemoving:Connect(function(player)
 	end
 end)
 
--- Item ESP (FIXED)
+-- Item ESP
 local itemEspFolder = Instance.new("Folder", ScreenGui)
 itemEspFolder.Name = "ItemESP"
 local itemEspObjects = {}
 
 local function shouldShowItem(drop)
 	local rarity = drop:GetAttribute("Rarity")
-	
-	-- Check if any rarity is enabled
 	local anyRarityEnabled = false
 	for _, v in pairs(Rarities) do
-		if v then
-			anyRarityEnabled = true
-			break
-		end
+		if v then anyRarityEnabled = true break end
 	end
-
-	-- If rarities are enabled, only show matching ones
 	if anyRarityEnabled then
-		if not rarity or not Rarities[rarity] then
-			return false
-		end
+		if not rarity or not Rarities[rarity] then return false end
 	end
-
-	-- Name filter
 	local hasNameFilter = next(NameFilters) ~= nil
-	if hasNameFilter and not NameFilters[drop.Name] then
-		return false
-	end
-
+	if hasNameFilter and not NameFilters[drop.Name] then return false end
 	return true
 end
 
 local function updateItemEsp()
 	if not itemEspEnabled then
-		for _, obj in pairs(itemEspObjects) do
-			if obj then obj.Enabled = false end
-		end
+		for _, obj in pairs(itemEspObjects) do if obj then obj.Enabled = false end end
 		return
 	end
-
 	for _, drop in ipairs(Drops:GetChildren()) do
 		if shouldShowItem(drop) then
 			if not itemEspObjects[drop] then
@@ -1066,7 +1063,6 @@ local function updateItemEsp()
 				billboard.Size = UDim2.new(0, 180, 0, 40)
 				billboard.StudsOffset = Vector3.new(0, 2.5, 0)
 				billboard.Parent = itemEspFolder
-
 				local label = Instance.new("TextLabel")
 				label.Size = UDim2.new(1, 0, 1, 0)
 				label.BackgroundTransparency = 1
@@ -1075,21 +1071,13 @@ local function updateItemEsp()
 				label.Font = Enum.Font.GothamBold
 				label.TextSize = 12
 				label.Parent = billboard
-
 				itemEspObjects[drop] = billboard
 			end
-
 			local bb = itemEspObjects[drop]
 			local label = bb:FindFirstChildOfClass("TextLabel")
 			local rarity = drop:GetAttribute("Rarity") or "?"
 			local dist = HRP and (drop:GetPivot().Position - HRP.Position).Magnitude or 0
-
-			-- Better way to find a part
-			local part = drop.PrimaryPart 
-				or drop:FindFirstChildWhichIsA("BasePart") 
-				or drop:FindFirstChild("Handle")
-				or drop:FindFirstChild("Part")
-
+			local part = drop.PrimaryPart or drop:FindFirstChildWhichIsA("BasePart") or drop:FindFirstChild("Handle") or drop:FindFirstChild("Part")
 			if part then
 				bb.Adornee = part
 				bb.Enabled = true
@@ -1100,13 +1088,10 @@ local function updateItemEsp()
 				bb.Enabled = false
 			end
 		else
-			if itemEspObjects[drop] then
-				itemEspObjects[drop].Enabled = false
-			end
+			if itemEspObjects[drop] then itemEspObjects[drop].Enabled = false end
 		end
 	end
 end
-
 Drops.ChildRemoved:Connect(function(child)
 	if itemEspObjects[child] then
 		itemEspObjects[child]:Destroy()
@@ -1153,7 +1138,7 @@ task.spawn(function()
 			local secs = hopTimer % 60
 			TimerLabel.Text = string.format("Next hop in: %02d:%02d", mins, secs)
 			if hopTimer <= 0 then
-				TimerLabel.Text = "Hopping to 1-3 player server..."
+				TimerLabel.Text = "Hopping..."
 				smartServerHop()
 				hopTimer = hopMinutes * 60
 			end
@@ -1164,5 +1149,36 @@ task.spawn(function()
 	end
 end)
 
+-- ========== AUTO RE-ENABLE AFTER HOP ==========
+task.spawn(function()
+	task.wait(1.5) -- wait a bit after script loads
+	if enabled then
+		spamming = true
+		FarmCheck.Text = "✓"
+		FarmCheck.BackgroundColor3 = Color3.fromRGB(0, 170, 80)
+		spamE()
+		print("[HentaiHub V2] Auto Farm restored")
+	end
+	if autoHopEnabled then
+		AutoHopCheck.Text = "✓"
+		AutoHopCheck.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+		hopTimer = hopMinutes * 60
+		print("[HentaiHub V2] Auto Hop restored")
+	end
+	if itemEspEnabled then
+		ItemEspCheck.Text = "✓"
+		ItemEspCheck.BackgroundColor3 = Color3.fromRGB(180, 100, 255)
+	end
+	if fullBrightEnabled then
+		BrightCheck.Text = "✓"
+		BrightCheck.BackgroundColor3 = Color3.fromRGB(200, 160, 0)
+		enableFullBright()
+	end
+	if espEnabled then
+		PlayerEspCheck.Text = "✓"
+		PlayerEspCheck.BackgroundColor3 = Color3.fromRGB(0, 140, 200)
+	end
+end)
+
 updateSize()
-print("[HentaiHub] Fully Loaded | Bosses: The Festering + Cell Of Life")
+print("[HentaiHub V2] Loaded | Auto Farm + Filters will persist after hop")
