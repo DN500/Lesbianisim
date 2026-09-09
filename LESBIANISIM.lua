@@ -377,7 +377,7 @@ local function createTPButton(text, color)
 	return btn
 end
 
-local GemGachaBtn = createTPButton("TP Gem Gacha", Color3.fromRGB(120, 40, 180))
+local GemGachaBtn = createTPButton("TP Named Gem Gacha", Color3.fromRGB(120, 40, 180))
 local BossListBtn = createTPButton("Boss List  →", Color3.fromRGB(40, 120, 90))
 local HopBtn = createTPButton("Server Hop (1-3 Players)", Color3.fromRGB(180, 60, 60))
 
@@ -838,6 +838,7 @@ end)
 refreshNameList()
 
 -- Player list
+-- Player list (with DisplayName)
 local function refreshPlayerList()
 	for _, child in ipairs(PlayerFrame:GetChildren()) do
 		if child:IsA("TextButton") then child:Destroy() end
@@ -850,17 +851,24 @@ local function refreshPlayerList()
 			btn.Size = UDim2.new(1, -6, 0, 24)
 			btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 			btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-			btn.Text = plr.Name
 			btn.Font = Enum.Font.Gotham
 			btn.TextSize = 12
 			btn.Parent = PlayerFrame
+
+			-- Show DisplayName + Username
+			if plr.DisplayName ~= plr.Name then
+				btn.Text = plr.DisplayName .. " (@" .. plr.Name .. ")"
+			else
+				btn.Text = plr.Name
+			end
+
 			local c = Instance.new("UICorner")
 			c.CornerRadius = UDim.new(0, 4)
 			c.Parent = btn
 
 			btn.MouseButton1Click:Connect(function()
 				pendingPlayer = plr
-				ConfirmTitle.Text = "TP to " .. plr.Name .. "?"
+				ConfirmTitle.Text = "TP to " .. plr.DisplayName .. "?"
 				ConfirmFrame.Visible = true
 			end)
 		end
