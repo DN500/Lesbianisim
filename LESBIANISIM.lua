@@ -27,6 +27,7 @@ local itemEspEnabled = false
 local fullBrightEnabled = false
 local autoHopEnabled = false
 local minimized = false
+local bossListOpen = false
 
 local hopMinutes = 10
 local hopTimer = hopMinutes * 60
@@ -102,7 +103,7 @@ local function saveConfig()
 end
 loadConfig()
 
--- ========== SMART SERVER HOP (1-3 players) ==========
+-- ========== SMART SERVER HOP ==========
 local function getLowPlayerServers()
 	local servers = {}
 	local cursor = ""
@@ -148,7 +149,7 @@ local function smartServerHop()
 	local servers = getLowPlayerServers()
 	
 	if #servers == 0 then
-		warn("[Server Hop] No 1-3 player servers found, using normal hop")
+		warn("[Server Hop] No 1-3 player servers found")
 		pcall(function()
 			TeleportService:Teleport(game.PlaceId, LocalPlayer)
 		end)
@@ -178,8 +179,8 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = PlayerGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 260, 0, 32)
-MainFrame.Position = UDim2.new(0.5, -130, 0.05, 0)
+MainFrame.Size = UDim2.new(0, 280, 0, 32)
+MainFrame.Position = UDim2.new(0.5, -140, 0.05, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
@@ -264,17 +265,62 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
+-- Resize Handle
+local ResizeHandle = Instance.new("TextButton")
+ResizeHandle.Size = UDim2.new(0, 16, 0, 16)
+ResizeHandle.Position = UDim2.new(1, -16, 1, -16)
+ResizeHandle.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+ResizeHandle.Text = ""
+ResizeHandle.AutoButtonColor = false
+ResizeHandle.Parent = MainFrame
+local rhC = Instance.new("UICorner")
+rhC.CornerRadius = UDim.new(0, 4)
+rhC.Parent = ResizeHandle
+
+local resizing = false
+local resizeStart, startSize
+
+ResizeHandle.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		resizing = true
+		resizeStart = input.Position
+		startSize = MainFrame.Size
+	end
+end)
+
+ResizeHandle.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		resizing = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if resizing and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - resizeStart
+		local newWidth = math.clamp(startSize.X.Offset + delta.X, 240, 500)
+		local newHeight = math.clamp(startSize.Y.Offset + delta.Y, 120, 850)
+		MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+	end
+end)
+
 -- Content
-local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, -16, 0, 0)
+local Content = Instance.new("ScrollingFrame")
+Content.Size = UDim2.new(1, -16, 1, -48)
 Content.Position = UDim2.new(0, 8, 0, 36)
 Content.BackgroundTransparency = 1
+Content.BorderSizePixel = 0
+Content.ScrollBarThickness = 4
+Content.CanvasSize = UDim2.new(0, 0, 0, 0)
 Content.Parent = MainFrame
 
 local layout = Instance.new("UIListLayout")
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Padding = UDim.new(0, 6)
 layout.Parent = Content
+
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	Content.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+end)
 
 -- Checkbox helper
 local function createCheckbox(text, default)
@@ -315,7 +361,7 @@ local ItemEspCheck = createCheckbox("Item ESP", false)
 local BrightCheck = createCheckbox("Full Bright", false)
 local PlayerEspCheck = createCheckbox("Player ESP", false)
 
--- Teleport Buttons
+-- Buttons
 local function createTPButton(text, color)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, 0, 0, 28)
@@ -332,7 +378,7 @@ local function createTPButton(text, color)
 end
 
 local GemGachaBtn = createTPButton("TP Named Gem Gacha", Color3.fromRGB(120, 40, 180))
-local FesteringBtn = createTPButton("TP The Festering", Color3.fromRGB(40, 140, 80))
+local BossListBtn = createTPButton("Boss List  →", Color3.fromRGB(40, 120, 90))
 local HopBtn = createTPButton("Server Hop (1-3 Players)", Color3.fromRGB(180, 60, 60))
 
 local AutoHopCheck = createCheckbox("Auto Server Hop", false)
@@ -514,19 +560,203 @@ local pfL = Instance.new("UIListLayout")
 pfL.Padding = UDim.new(0, 3)
 pfL.Parent = PlayerFrame
 
--- Size updater
+-- ========== BOSS LIST SIDE PANEL (FIXED) ==========
+local BossPanel = Instance.new("Frame")
+BossPanel.Size = UDim2.new(0, 200, 0, 160)
+BossPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+BossPanel.BorderSizePixel = 0
+BossPanel.Visible = false
+BossPanel.Parent = ScreenGui
+local bpC = Instance.new("UICorner")
+bpC.CornerRadius = UDim.new(0, 10)
+bpC.Parent = BossPanel
+
+local BossTitle = Instance.new("TextLabel")
+BossTitle.Size = UDim2.new(1, -10, 0, 30)
+BossTitle.Position = UDim2.new(0, 8, 0, 4)
+BossTitle.BackgroundTransparency = 1
+BossTitle.Text = "Boss Teleports"
+BossTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+BossTitle.Font = Enum.Font.GothamBold
+BossTitle.TextSize = 14
+BossTitle.TextXAlignment = Enum.TextXAlignment.Left
+BossTitle.Parent = BossPanel
+
+local BossClose = Instance.new("TextButton")
+BossClose.Size = UDim2.new(0, 24, 0, 24)
+BossClose.Position = UDim2.new(1, -28, 0, 4)
+BossClose.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+BossClose.Text = "X"
+BossClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+BossClose.Font = Enum.Font.GothamBold
+BossClose.TextSize = 12
+BossClose.Parent = BossPanel
+local bcC = Instance.new("UICorner")
+bcC.CornerRadius = UDim.new(0, 5)
+bcC.Parent = BossClose
+
+local BossList = Instance.new("ScrollingFrame")
+BossList.Size = UDim2.new(1, -16, 1, -40)
+BossList.Position = UDim2.new(0, 8, 0, 36)
+BossList.BackgroundTransparency = 1
+BossList.BorderSizePixel = 0
+BossList.ScrollBarThickness = 4
+BossList.CanvasSize = UDim2.new(0, 0, 0, 0)
+BossList.Parent = BossPanel
+
+local BossLayout = Instance.new("UIListLayout")
+BossLayout.Padding = UDim.new(0, 6)
+BossLayout.Parent = BossList
+
+-- Boss Data (easy to add more)
+local Bosses = {
+	{
+		Name = "The Festering",
+		CFrame = CFrame.new(
+			1339.49951, -553.002441, 382.000061,
+			0, 0, 1,
+			1, 0, 0,
+			0, 1, 0
+		)
+	},
+}
+
+for _, boss in ipairs(Bosses) do
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 32)
+	btn.BackgroundColor3 = Color3.fromRGB(50, 100, 70)
+	btn.Text = boss.Name
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 13
+	btn.Parent = BossList
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, 6)
+	c.Parent = btn
+
+	btn.MouseButton1Click:Connect(function()
+		if HRP then
+			HRP.CFrame = boss.CFrame
+		end
+	end)
+end
+
+BossLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	BossList.CanvasSize = UDim2.new(0, 0, 0, BossLayout.AbsoluteContentSize.Y + 10)
+end)
+
+local function updateBossPanelPosition()
+	local mainPos = MainFrame.AbsolutePosition
+	local mainSize = MainFrame.AbsoluteSize
+	BossPanel.Position = UDim2.new(0, mainPos.X + mainSize.X + 8, 0, mainPos.Y)
+end
+
+BossListBtn.MouseButton1Click:Connect(function()
+	bossListOpen = not bossListOpen
+	BossPanel.Visible = bossListOpen
+	BossListBtn.Text = bossListOpen and "Boss List  ←" or "Boss List  →"
+	if bossListOpen then
+		updateBossPanelPosition()
+	end
+end)
+
+BossClose.MouseButton1Click:Connect(function()
+	bossListOpen = false
+	BossPanel.Visible = false
+	BossListBtn.Text = "Boss List  →"
+end)
+
+MainFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+	if bossListOpen then updateBossPanelPosition() end
+end)
+MainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+	if bossListOpen then updateBossPanelPosition() end
+end)
+
+-- Confirm Popup
+local ConfirmFrame = Instance.new("Frame")
+ConfirmFrame.Size = UDim2.new(0, 220, 0, 110)
+ConfirmFrame.Position = UDim2.new(0.5, -110, 0.5, -55)
+ConfirmFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ConfirmFrame.BorderSizePixel = 0
+ConfirmFrame.Visible = false
+ConfirmFrame.ZIndex = 10
+ConfirmFrame.Parent = ScreenGui
+local cfC = Instance.new("UICorner")
+cfC.CornerRadius = UDim.new(0, 10)
+cfC.Parent = ConfirmFrame
+
+local ConfirmTitle = Instance.new("TextLabel")
+ConfirmTitle.Size = UDim2.new(1, -20, 0, 40)
+ConfirmTitle.Position = UDim2.new(0, 10, 0, 8)
+ConfirmTitle.BackgroundTransparency = 1
+ConfirmTitle.Text = "TP to Player?"
+ConfirmTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfirmTitle.Font = Enum.Font.GothamBold
+ConfirmTitle.TextSize = 14
+ConfirmTitle.TextWrapped = true
+ConfirmTitle.Parent = ConfirmFrame
+
+local ConfirmYes = Instance.new("TextButton")
+ConfirmYes.Size = UDim2.new(0, 90, 0, 32)
+ConfirmYes.Position = UDim2.new(0, 15, 1, -45)
+ConfirmYes.BackgroundColor3 = Color3.fromRGB(0, 170, 80)
+ConfirmYes.Text = "Confirm"
+ConfirmYes.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfirmYes.Font = Enum.Font.GothamBold
+ConfirmYes.TextSize = 13
+ConfirmYes.Parent = ConfirmFrame
+local cyC = Instance.new("UICorner")
+cyC.CornerRadius = UDim.new(0, 6)
+cyC.Parent = ConfirmYes
+
+local ConfirmNo = Instance.new("TextButton")
+ConfirmNo.Size = UDim2.new(0, 90, 0, 32)
+ConfirmNo.Position = UDim2.new(1, -105, 1, -45)
+ConfirmNo.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ConfirmNo.Text = "Cancel"
+ConfirmNo.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfirmNo.Font = Enum.Font.GothamBold
+ConfirmNo.TextSize = 13
+ConfirmNo.Parent = ConfirmFrame
+local cnC = Instance.new("UICorner")
+cnC.CornerRadius = UDim.new(0, 6)
+cnC.Parent = ConfirmNo
+
+local pendingPlayer = nil
+
+ConfirmYes.MouseButton1Click:Connect(function()
+	if pendingPlayer and HRP then
+		local char = pendingPlayer.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		if root then
+			HRP.CFrame = root.CFrame + Vector3.new(0, 3, 0)
+		end
+	end
+	ConfirmFrame.Visible = false
+	pendingPlayer = nil
+end)
+
+ConfirmNo.MouseButton1Click:Connect(function()
+	ConfirmFrame.Visible = false
+	pendingPlayer = nil
+end)
+
+-- Size / Minimize
 local function updateSize()
-	task.wait()
 	if minimized then
-		MainFrame.Size = UDim2.new(0, 260, 0, 32)
+		MainFrame.Size = UDim2.new(0, MainFrame.Size.X.Offset, 0, 32)
 		Content.Visible = false
+		ResizeHandle.Visible = false
+		BossPanel.Visible = false
 	else
 		Content.Visible = true
-		local total = layout.AbsoluteContentSize.Y + 48
-		MainFrame.Size = UDim2.new(0, 260, 0, math.clamp(total, 80, 800))
+		ResizeHandle.Visible = true
+		if MainFrame.Size.Y.Offset < 150 then
+			MainFrame.Size = UDim2.new(0, MainFrame.Size.X.Offset, 0, 450)
+		end
 	end
 end
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateSize)
 
 MinBtn.MouseButton1Click:Connect(function()
 	minimized = not minimized
@@ -538,14 +768,12 @@ RarityHeader.MouseButton1Click:Connect(function()
 	rarityOpen = not rarityOpen
 	RarityHeader.Text = rarityOpen and "Rarities  ▲" or "Rarities  ▼"
 	RarityContainer.Size = UDim2.new(1, 0, 0, rarityOpen and 130 or 0)
-	updateSize()
 end)
 
 PlayerHeader.MouseButton1Click:Connect(function()
 	playerOpen = not playerOpen
 	PlayerHeader.Text = playerOpen and "TP to Player  ▲" or "TP to Player  ▼"
-	PlayerFrame.Size = UDim2.new(1, 0, 0, playerOpen and 100 or 0)
-	updateSize()
+	PlayerFrame.Size = UDim2.new(1, 0, 0, playerOpen and 110 or 0)
 end)
 
 -- Name filter
@@ -593,7 +821,6 @@ local function refreshNameList()
 		end)
 	end
 	NameListFrame.CanvasSize = UDim2.new(0, 0, 0, count * 23)
-	updateSize()
 end
 
 AddBtn.MouseButton1Click:Connect(function()
@@ -620,7 +847,7 @@ local function refreshPlayerList()
 		if plr ~= LocalPlayer then
 			count += 1
 			local btn = Instance.new("TextButton")
-			btn.Size = UDim2.new(1, -6, 0, 22)
+			btn.Size = UDim2.new(1, -6, 0, 24)
 			btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 			btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 			btn.Text = plr.Name
@@ -630,26 +857,21 @@ local function refreshPlayerList()
 			local c = Instance.new("UICorner")
 			c.CornerRadius = UDim.new(0, 4)
 			c.Parent = btn
+
 			btn.MouseButton1Click:Connect(function()
-				local char = plr.Character
-				local root = char and char:FindFirstChild("HumanoidRootPart")
-				if root and HRP then
-					HRP.CFrame = root.CFrame + Vector3.new(0, 3, 0)
-				end
+				pendingPlayer = plr
+				ConfirmTitle.Text = "TP to " .. plr.Name .. "?"
+				ConfirmFrame.Visible = true
 			end)
 		end
 	end
-	PlayerFrame.CanvasSize = UDim2.new(0, 0, 0, count * 25)
+	PlayerFrame.CanvasSize = UDim2.new(0, 0, 0, count * 27)
 end
 Players.PlayerAdded:Connect(refreshPlayerList)
 Players.PlayerRemoving:Connect(refreshPlayerList)
 refreshPlayerList()
 
--- Teleport CFrames
-local function tpToCFrame(cf)
-	if HRP then HRP.CFrame = cf end
-end
-
+-- Gem Gacha
 local GemGachaCF = CFrame.new(
 	-239.865997, 1471.57495, -5.01026917,
 	2.83718109e-05, -0.70481348, 0.709392726,
@@ -657,19 +879,8 @@ local GemGachaCF = CFrame.new(
 	-1.18017197e-05, 0.709392726, 0.704813421
 )
 
-local FesteringCF = CFrame.new(
-	1339.49951, -553.002441, 382.000061,
-	0, 0, 1,
-	1, 0, 0,
-	0, 1, 0
-)
-
 GemGachaBtn.MouseButton1Click:Connect(function()
-	tpToCFrame(GemGachaCF)
-end)
-
-FesteringBtn.MouseButton1Click:Connect(function()
-	tpToCFrame(FesteringCF)
+	if HRP then HRP.CFrame = GemGachaCF end
 end)
 
 -- Logic
@@ -723,7 +934,9 @@ AutoHopCheck.MouseButton1Click:Connect(function()
 	autoHopEnabled = not autoHopEnabled
 	AutoHopCheck.Text = autoHopEnabled and "✓" or ""
 	AutoHopCheck.BackgroundColor3 = autoHopEnabled and Color3.fromRGB(200, 80, 80) or Color3.fromRGB(50, 50, 50)
-	if autoHopEnabled then hopTimer = hopMinutes * 60 end
+	if autoHopEnabled then
+		hopTimer = hopMinutes * 60
+	end
 end)
 
 HopBtn.MouseButton1Click:Connect(function()
@@ -799,7 +1012,7 @@ Players.PlayerRemoving:Connect(function(player)
 	end
 end)
 
--- Item ESP (filtered by rarity + name filter)
+-- Item ESP
 local itemEspFolder = Instance.new("Folder")
 itemEspFolder.Name = "ItemESP"
 itemEspFolder.Parent = ScreenGui
@@ -890,7 +1103,7 @@ task.spawn(function()
 	end
 end)
 
--- Auto Hop
+-- Auto Hop (stays ON)
 task.spawn(function()
 	while running do
 		if autoHopEnabled then
@@ -912,4 +1125,4 @@ task.spawn(function()
 end)
 
 updateSize()
-print("[HentaiHub] Fully Loaded - Smart Server Hop (1-3 players)")
+print("[HentaiHub] Fully Loaded - Boss List Fixed")
