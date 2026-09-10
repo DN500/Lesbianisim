@@ -1,38 +1,19 @@
------------------- KEY SYSTEM (EASY TO EDIT) ------------------
+------------------ KEY SYSTEM ------------------
 local KEY_SYSTEM = {
 	Enabled = true,
-	ValidKey = "HentaiHub2026",                    -- change this to your real key
-	KeyURL = "",                                    -- optional remote key check
+	ValidKey = "HentaiHub2026", -- CHANGE THIS
+	KeyURL = "",
 	SaveFile = "HentaiHubKey.txt",
-	GetKeyLink = "https://link-center.net/9212709/lqK7CtWhOedH",  -- your link
+	GetKeyLink = "https://link-center.net/9212709/lqK7CtWhOedH",
 }
----------------------------------------------------------------
+------------------------------------------------
 
 local function checkKey()
 	if not KEY_SYSTEM.Enabled then return true end
-
 	if isfile and isfile(KEY_SYSTEM.SaveFile) then
 		local saved = readfile(KEY_SYSTEM.SaveFile)
-		if saved == KEY_SYSTEM.ValidKey then
-			return true
-		end
+		if saved == KEY_SYSTEM.ValidKey then return true end
 	end
-
-	if KEY_SYSTEM.KeyURL ~= "" then
-		local success, result = pcall(function()
-			return game:HttpGet(KEY_SYSTEM.KeyURL)
-		end)
-		if success and result then
-			local remoteKey = result:gsub("%s+", "")
-			if remoteKey == KEY_SYSTEM.ValidKey then
-				if writefile then
-					writefile(KEY_SYSTEM.SaveFile, KEY_SYSTEM.ValidKey)
-				end
-				return true
-			end
-		end
-	end
-
 	return false
 end
 
@@ -53,7 +34,7 @@ if KEY_SYSTEM.Enabled and not checkKey() then
 	local Title = Instance.new("TextLabel")
 	Title.Size = UDim2.new(1, 0, 0, 40)
 	Title.BackgroundTransparency = 1
-	Title.Text = "HentaiHub V2 - Key System"
+	Title.Text = "HentaiHub V2.1 - Key System"
 	Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	Title.Font = Enum.Font.GothamBold
 	Title.TextSize = 16
@@ -67,7 +48,6 @@ if KEY_SYSTEM.Enabled and not checkKey() then
 	KeyBox.PlaceholderText = "Enter Key..."
 	KeyBox.Font = Enum.Font.Gotham
 	KeyBox.TextSize = 14
-	KeyBox.Text = ""
 	KeyBox.Parent = Frame
 	Instance.new("UICorner", KeyBox).CornerRadius = UDim.new(0, 8)
 
@@ -82,7 +62,6 @@ if KEY_SYSTEM.Enabled and not checkKey() then
 	SubmitBtn.Parent = Frame
 	Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 8)
 
-	-- Click here for the key button
 	local GetKeyBtn = Instance.new("TextButton")
 	GetKeyBtn.Size = UDim2.new(1, -40, 0, 36)
 	GetKeyBtn.Position = UDim2.new(0, 20, 0, 148)
@@ -104,87 +83,39 @@ if KEY_SYSTEM.Enabled and not checkKey() then
 	Status.TextSize = 12
 	Status.Parent = Frame
 
-	-- Open the key link
 	GetKeyBtn.MouseButton1Click:Connect(function()
-		local success = pcall(function()
-			-- Most executors support this
-			if setclipboard then
-				setclipboard(KEY_SYSTEM.GetKeyLink)
-			end
-			-- Try to open the browser
-			if request then
-				-- some executors
-			end
-		end)
-
-		-- Best way that works on most executors
-		local HttpService = game:GetService("HttpService")
 		pcall(function()
+			if setclipboard then setclipboard(KEY_SYSTEM.GetKeyLink) end
 			game:GetService("GuiService"):OpenBrowserWindow(KEY_SYSTEM.GetKeyLink)
 		end)
-
-		-- Fallback for many executors
-		pcall(function()
-			if syn and syn.request then
-				-- synapse style
-			end
-			-- Common method
-			local vim = game:GetService("VirtualInputManager")
-			-- Just notify user
-		end)
-
 		Status.TextColor3 = Color3.fromRGB(100, 200, 255)
-		Status.Text = "Link copied / opening..."
+		Status.Text = "Link opened / copied"
 	end)
 
 	local verified = false
-
 	SubmitBtn.MouseButton1Click:Connect(function()
 		local input = KeyBox.Text:gsub("%s+", "")
-
 		if input == KEY_SYSTEM.ValidKey then
 			verified = true
-		end
-
-		if not verified and KEY_SYSTEM.KeyURL ~= "" then
-			local success, result = pcall(function()
-				return game:HttpGet(KEY_SYSTEM.KeyURL)
-			end)
-			if success and result then
-				local remoteKey = result:gsub("%s+", "")
-				if input == remoteKey then
-					verified = true
-					KEY_SYSTEM.ValidKey = remoteKey
-				end
-			end
-		end
-
-		if verified then
-			if writefile then
-				writefile(KEY_SYSTEM.SaveFile, KEY_SYSTEM.ValidKey)
-			end
+			if writefile then writefile(KEY_SYSTEM.SaveFile, KEY_SYSTEM.ValidKey) end
 			Status.TextColor3 = Color3.fromRGB(0, 255, 100)
 			Status.Text = "Key Accepted! Loading..."
-			task.wait(0.8)
+			task.wait(0.7)
 			KeyGui:Destroy()
 		else
-			Status.TextColor3 = Color3.fromRGB(255, 80, 80)
 			Status.Text = "Invalid Key"
 		end
 	end)
 
-	-- Wait until key is correct
-	while not verified do
-		task.wait(0.1)
-	end
+	while not verified do task.wait(0.1) end
 end
----------------------------------------------------------------
----------------------------------------------------------------
+
 ------------------ CONFIG ------------------
 local TP_DELAY = 1
 local CHECK_DELAY = 0.3
 local SPAM_DELAY = 0.05
 local SAVE_FILE = "AutoFarmConfig.json"
+local TWEEN_SPEED = 90
 --------------------------------------------
 
 local Players = game:GetService("Players")
@@ -193,6 +124,7 @@ local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local TeleportService = game:GetService("TeleportService")
+local TweenService = game:GetService("TweenService")
 local VIM = game:GetService("VirtualInputManager")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -211,35 +143,26 @@ local autoHopEnabled = false
 local minimized = false
 local bossListOpen = false
 local filterOpen = false
+local locationsOpen = false
+local settingsOpen = false
 
 local hopMinutes = 10
 local hopTimer = hopMinutes * 60
 
------------------- BOSS MODULE (EASY TO ADD) ------------------
+------------------ BOSS MODULE ------------------
 local Bosses = {
-	{
-		Name = "The Festering",
-		CFrame = CFrame.new(1339.49951, -553.002441, 382.000061)
-	},
-	{
-		Name = "Cell Of Life",
-		CFrame = CFrame.new(446.3, -914.8, -296.6)
-	},
-	{
-		Name = "The Puppeteer",
-		CFrame = CFrame.new(-1771.5, 42.5, 1760.9)
-	},
-	{
-		Name = "The Unfinish",
-		CFrame = CFrame.new(-2746.6, 131, -2213.6)
-	},
-	-- ========== ADD NEW BOSSES HERE ==========
-	-- {
-	-- 	Name = "Boss Name",
-	-- 	CFrame = CFrame.new(X, Y, Z)
-	-- },
+	{Name = "The Festering", CFrame = CFrame.new(1339.49951, -553.002441, 382.000061)},
+	{Name = "Cell Of Life", CFrame = CFrame.new(446.3, -914.8, -296.6)},
+	{Name = "The Puppeteer", CFrame = CFrame.new(-1771.5, 42.5, 1760.9)},
+	{Name = "The Unfinish", CFrame = CFrame.new(-2746.6, 131, -2213.6)},
 }
----------------------------------------------------------------
+
+------------------ LOCATIONS MODULE ------------------
+local Locations = {
+	{Name = "Spawn", CFrame = CFrame.new(0, 10, 0)},
+	-- Add more here:
+	-- {Name = "Name", CFrame = CFrame.new(X, Y, Z)},
+}
 
 -- Fog
 local function deleteAtmosphere()
@@ -275,32 +198,17 @@ local function disableFullBright()
 	end
 end
 
-local Rarities = {
-	Common = false, Uncommon = false, Rare = false, Elite = false, Legendary = false
-}
-local NameFilters = {
-	["Idol of Hatred"] = true,
-	["Stone Accord"] = true,
-}
+local Rarities = {Common = false, Uncommon = false, Rare = false, Elite = false, Legendary = false}
+local NameFilters = {["Idol of Hatred"] = true, ["Stone Accord"] = true}
 
--- ========== SAVE / LOAD (NOW SAVES AUTO FARM + AUTO HOP) ==========
 local function loadConfig()
 	if isfile and isfile(SAVE_FILE) then
-		local success, data = pcall(function()
-			return HttpService:JSONDecode(readfile(SAVE_FILE))
-		end)
+		local success, data = pcall(function() return HttpService:JSONDecode(readfile(SAVE_FILE)) end)
 		if success and data then
-			if data.Rarities then
-				for k, v in pairs(data.Rarities) do Rarities[k] = v end
-			end
-			if data.NameFilters then
-				NameFilters = data.NameFilters
-			end
-			if data.hopMinutes then
-				hopMinutes = data.hopMinutes
-				hopTimer = hopMinutes * 60
-			end
-			-- Restore states
+			if data.Rarities then for k,v in pairs(data.Rarities) do Rarities[k] = v end end
+			if data.NameFilters then NameFilters = data.NameFilters end
+			if data.hopMinutes then hopMinutes = data.hopMinutes hopTimer = hopMinutes * 60 end
+			if data.TWEEN_SPEED then TWEEN_SPEED = data.TWEEN_SPEED end
 			if data.enabled then enabled = data.enabled end
 			if data.autoHopEnabled then autoHopEnabled = data.autoHopEnabled end
 			if data.itemEspEnabled then itemEspEnabled = data.itemEspEnabled end
@@ -317,6 +225,7 @@ local function saveConfig()
 				Rarities = Rarities,
 				NameFilters = NameFilters,
 				hopMinutes = hopMinutes,
+				TWEEN_SPEED = TWEEN_SPEED,
 				enabled = enabled,
 				autoHopEnabled = autoHopEnabled,
 				itemEspEnabled = itemEspEnabled,
@@ -326,25 +235,21 @@ local function saveConfig()
 		end)
 	end
 end
-
 loadConfig()
 
--- Smart Server Hop
+-- Server Hop
 local function getLowPlayerServers()
 	local servers = {}
 	local cursor = ""
 	for i = 1, 4 do
 		local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
 		if cursor ~= "" then url = url .. "&cursor=" .. cursor end
-		local success, result = pcall(function()
-			return HttpService:JSONDecode(game:HttpGet(url))
-		end)
+		local success, result = pcall(function() return HttpService:JSONDecode(game:HttpGet(url)) end)
 		if success and result and result.data then
 			for _, server in ipairs(result.data) do
 				local playing = server.playing or 0
-				local jobId = server.id
-				if playing >= 1 and playing <= 3 and jobId ~= game.JobId then
-					table.insert(servers, {id = jobId, playing = playing})
+				if playing >= 1 and playing <= 3 and server.id ~= game.JobId then
+					table.insert(servers, {id = server.id, playing = playing})
 				end
 			end
 			cursor = result.nextPageCursor or ""
@@ -356,21 +261,53 @@ local function getLowPlayerServers()
 end
 
 local function smartServerHop()
-	-- Save everything before hopping
 	saveConfig()
-
 	local servers = getLowPlayerServers()
 	if #servers == 0 then
 		pcall(function() TeleportService:Teleport(game.PlaceId, LocalPlayer) end)
 		return
 	end
 	local target = servers[1]
-	print("[Server Hop] Joining server with", target.playing, "players")
-	local success = pcall(function()
+	pcall(function()
 		TeleportService:TeleportToPlaceInstance(game.PlaceId, target.id, LocalPlayer)
 	end)
-	if not success then
-		pcall(function() TeleportService:Teleport(game.PlaceId, LocalPlayer) end)
+end
+
+-- ========== TWEEN SYSTEM (FIXED) ==========
+local function setCollision(char, state)
+	if not char then return end
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = state
+		end
+	end
+end
+
+local function tweenTo(targetCFrame)
+	if not HRP or not HRP.Parent then return end
+	local char = LocalPlayer.Character
+	if not char then return end
+
+	local speed = TWEEN_SPEED
+	if speed < 10 then speed = 10 end
+
+	setCollision(char, false)
+
+	local distance = (HRP.Position - targetCFrame.Position).Magnitude
+	local time = math.clamp(distance / speed, 0.15, 12)
+
+	local tween = TweenService:Create(HRP, TweenInfo.new(time, Enum.EasingStyle.Linear), {
+		CFrame = targetCFrame + Vector3.new(0, 3, 0)
+	})
+	tween:Play()
+	tween.Completed:Wait()
+
+	setCollision(char, true)
+end
+
+local function tpTo(drop)
+	if HRP and drop then
+		tweenTo(drop:GetPivot())
 	end
 end
 
@@ -388,10 +325,8 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
-
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
--- Title Bar
 local TitleBar = Instance.new("Frame")
 TitleBar.Size = UDim2.new(1, 0, 0, 32)
 TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -402,7 +337,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "HentaiHub V2"
+Title.Text = "HentaiHub V2.1"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 15
@@ -436,9 +371,6 @@ CloseBtn.MouseButton1Click:Connect(function()
 	running = false
 	enabled = false
 	spamming = false
-	espEnabled = false
-	itemEspEnabled = false
-	autoHopEnabled = false
 	if fullBrightEnabled then disableFullBright() end
 	ScreenGui:Destroy()
 end)
@@ -468,7 +400,6 @@ ResizeHandle.Size = UDim2.new(0, 16, 0, 16)
 ResizeHandle.Position = UDim2.new(1, -16, 1, -16)
 ResizeHandle.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 ResizeHandle.Text = ""
-ResizeHandle.AutoButtonColor = false
 ResizeHandle.Parent = MainFrame
 Instance.new("UICorner", ResizeHandle).CornerRadius = UDim.new(0, 4)
 
@@ -497,7 +428,6 @@ Content.Position = UDim2.new(0, 8, 0, 36)
 Content.BackgroundTransparency = 1
 Content.BorderSizePixel = 0
 Content.ScrollBarThickness = 4
-Content.CanvasSize = UDim2.new(0, 0, 0, 0)
 Content.Parent = MainFrame
 
 local layout = Instance.new("UIListLayout")
@@ -508,13 +438,11 @@ layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	Content.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
 end)
 
--- Helper
 local function createCheckbox(text, default)
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, 0, 0, 26)
 	frame.BackgroundTransparency = 1
 	frame.Parent = Content
-
 	local box = Instance.new("TextButton")
 	box.Size = UDim2.new(0, 22, 0, 22)
 	box.Position = UDim2.new(0, 0, 0, 2)
@@ -525,7 +453,6 @@ local function createCheckbox(text, default)
 	box.TextSize = 14
 	box.Parent = frame
 	Instance.new("UICorner", box).CornerRadius = UDim.new(0, 5)
-
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, -30, 1, 0)
 	label.Position = UDim2.new(0, 30, 0, 0)
@@ -539,7 +466,7 @@ local function createCheckbox(text, default)
 	return box
 end
 
--- Auto Farm + Filter button
+-- Auto Farm row
 local FarmRow = Instance.new("Frame")
 FarmRow.Size = UDim2.new(1, 0, 0, 28)
 FarmRow.BackgroundTransparency = 1
@@ -597,6 +524,8 @@ end
 
 local GemGachaBtn = createTPButton("TP Gem Gacha", Color3.fromRGB(120, 40, 180))
 local BossListBtn = createTPButton("Boss List  →", Color3.fromRGB(40, 120, 90))
+local LocationsBtn = createTPButton("Locations  →", Color3.fromRGB(90, 60, 140))
+local SettingsBtn = createTPButton("Settings  →", Color3.fromRGB(70, 70, 70))
 local HopBtn = createTPButton("Server Hop (1-3 Players)", Color3.fromRGB(180, 60, 60))
 local AutoHopCheck = createCheckbox("Auto Server Hop", autoHopEnabled)
 
@@ -703,15 +632,14 @@ PlayerFrame.Size = UDim2.new(1, 0, 0, 0)
 PlayerFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 PlayerFrame.BorderSizePixel = 0
 PlayerFrame.ScrollBarThickness = 4
-PlayerFrame.CanvasSize = UDim2.new(0,0,0,0)
-PlayerFrame.ClipsDescendants = true
 PlayerFrame.Parent = Content
 Instance.new("UICorner", PlayerFrame).CornerRadius = UDim.new(0, 5)
 local pfL = Instance.new("UIListLayout")
 pfL.Padding = UDim.new(0, 3)
 pfL.Parent = PlayerFrame
 
--- ========== FILTER SIDE PANEL ==========
+-- ========== SIDE PANELS ==========
+-- Filter
 local FilterPanel = Instance.new("Frame")
 FilterPanel.Size = UDim2.new(0, 220, 0, 210)
 FilterPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -770,14 +698,13 @@ NameListFrame.Position = UDim2.new(0, 8, 0, 108)
 NameListFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 NameListFrame.BorderSizePixel = 0
 NameListFrame.ScrollBarThickness = 4
-NameListFrame.CanvasSize = UDim2.new(0,0,0,0)
 NameListFrame.Parent = FilterPanel
 Instance.new("UICorner", NameListFrame).CornerRadius = UDim.new(0, 6)
 local NameListLayout = Instance.new("UIListLayout")
 NameListLayout.Padding = UDim.new(0, 4)
 NameListLayout.Parent = NameListFrame
 
--- ========== BOSS LIST SIDE PANEL ==========
+-- Boss Panel
 local BossPanel = Instance.new("Frame")
 BossPanel.Size = UDim2.new(0, 200, 0, 220)
 BossPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -814,9 +741,7 @@ BossList.Position = UDim2.new(0, 8, 0, 36)
 BossList.BackgroundTransparency = 1
 BossList.BorderSizePixel = 0
 BossList.ScrollBarThickness = 4
-BossList.CanvasSize = UDim2.new(0, 0, 0, 0)
 BossList.Parent = BossPanel
-
 local BossLayout = Instance.new("UIListLayout")
 BossLayout.Padding = UDim.new(0, 6)
 BossLayout.Parent = BossList
@@ -831,31 +756,169 @@ for _, boss in ipairs(Bosses) do
 	btn.TextSize = 13
 	btn.Parent = BossList
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-	btn.MouseButton1Click:Connect(function()
-		if HRP then HRP.CFrame = boss.CFrame end
-	end)
+	btn.MouseButton1Click:Connect(function() tweenTo(boss.CFrame) end)
 end
 BossLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	BossList.CanvasSize = UDim2.new(0, 0, 0, BossLayout.AbsoluteContentSize.Y + 10)
 end)
 
--- Position updaters
-local function updateFilterPanelPosition()
+-- Locations Panel
+local LocationsPanel = Instance.new("Frame")
+LocationsPanel.Size = UDim2.new(0, 200, 0, 220)
+LocationsPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+LocationsPanel.BorderSizePixel = 0
+LocationsPanel.Visible = false
+LocationsPanel.Parent = ScreenGui
+Instance.new("UICorner", LocationsPanel).CornerRadius = UDim.new(0, 10)
+
+local LocTitle = Instance.new("TextLabel")
+LocTitle.Size = UDim2.new(1, -10, 0, 30)
+LocTitle.Position = UDim2.new(0, 8, 0, 4)
+LocTitle.BackgroundTransparency = 1
+LocTitle.Text = "Locations"
+LocTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+LocTitle.Font = Enum.Font.GothamBold
+LocTitle.TextSize = 14
+LocTitle.TextXAlignment = Enum.TextXAlignment.Left
+LocTitle.Parent = LocationsPanel
+
+local LocClose = Instance.new("TextButton")
+LocClose.Size = UDim2.new(0, 24, 0, 24)
+LocClose.Position = UDim2.new(1, -28, 0, 4)
+LocClose.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+LocClose.Text = "X"
+LocClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+LocClose.Font = Enum.Font.GothamBold
+LocClose.TextSize = 12
+LocClose.Parent = LocationsPanel
+Instance.new("UICorner", LocClose).CornerRadius = UDim.new(0, 5)
+
+local LocList = Instance.new("ScrollingFrame")
+LocList.Size = UDim2.new(1, -16, 1, -40)
+LocList.Position = UDim2.new(0, 8, 0, 36)
+LocList.BackgroundTransparency = 1
+LocList.BorderSizePixel = 0
+LocList.ScrollBarThickness = 4
+LocList.Parent = LocationsPanel
+local LocLayout = Instance.new("UIListLayout")
+LocLayout.Padding = UDim.new(0, 6)
+LocLayout.Parent = LocList
+
+for _, loc in ipairs(Locations) do
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 32)
+	btn.BackgroundColor3 = Color3.fromRGB(80, 50, 120)
+	btn.Text = loc.Name
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 13
+	btn.Parent = LocList
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+	btn.MouseButton1Click:Connect(function() tweenTo(loc.CFrame) end)
+end
+LocLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	LocList.CanvasSize = UDim2.new(0, 0, 0, LocLayout.AbsoluteContentSize.Y + 10)
+end)
+
+-- ========== SETTINGS PANEL (FIXED) ==========
+local SettingsPanel = Instance.new("Frame")
+SettingsPanel.Size = UDim2.new(0, 220, 0, 150)
+SettingsPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+SettingsPanel.BorderSizePixel = 0
+SettingsPanel.Visible = false
+SettingsPanel.Parent = ScreenGui
+Instance.new("UICorner", SettingsPanel).CornerRadius = UDim.new(0, 10)
+
+local SetTitle = Instance.new("TextLabel")
+SetTitle.Size = UDim2.new(1, -10, 0, 30)
+SetTitle.Position = UDim2.new(0, 8, 0, 4)
+SetTitle.BackgroundTransparency = 1
+SetTitle.Text = "Settings"
+SetTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+SetTitle.Font = Enum.Font.GothamBold
+SetTitle.TextSize = 14
+SetTitle.TextXAlignment = Enum.TextXAlignment.Left
+SetTitle.Parent = SettingsPanel
+
+local SetClose = Instance.new("TextButton")
+SetClose.Size = UDim2.new(0, 24, 0, 24)
+SetClose.Position = UDim2.new(1, -28, 0, 4)
+SetClose.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+SetClose.Text = "X"
+SetClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+SetClose.Font = Enum.Font.GothamBold
+SetClose.TextSize = 12
+SetClose.Parent = SettingsPanel
+Instance.new("UICorner", SetClose).CornerRadius = UDim.new(0, 5)
+
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Size = UDim2.new(1, -20, 0, 20)
+SpeedLabel.Position = UDim2.new(0, 10, 0, 42)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text = "Tween Speed: " .. TWEEN_SPEED
+SpeedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+SpeedLabel.Font = Enum.Font.Gotham
+SpeedLabel.TextSize = 13
+SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+SpeedLabel.Parent = SettingsPanel
+
+local SpeedBox = Instance.new("TextBox")
+SpeedBox.Size = UDim2.new(1, -20, 0, 32)
+SpeedBox.Position = UDim2.new(0, 10, 0, 68)
+SpeedBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedBox.Text = tostring(TWEEN_SPEED)
+SpeedBox.Font = Enum.Font.Gotham
+SpeedBox.TextSize = 14
+SpeedBox.ClearTextOnFocus = false
+SpeedBox.Parent = SettingsPanel
+Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0, 6)
+
+local ApplyBtn = Instance.new("TextButton")
+ApplyBtn.Size = UDim2.new(1, -20, 0, 30)
+ApplyBtn.Position = UDim2.new(0, 10, 0, 108)
+ApplyBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 80)
+ApplyBtn.Text = "Apply Speed"
+ApplyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ApplyBtn.Font = Enum.Font.GothamBold
+ApplyBtn.TextSize = 13
+ApplyBtn.Parent = SettingsPanel
+Instance.new("UICorner", ApplyBtn).CornerRadius = UDim.new(0, 6)
+
+local function applyTweenSpeed()
+	local num = tonumber(SpeedBox.Text)
+	if num and num >= 10 then
+		TWEEN_SPEED = math.floor(num)
+		SpeedLabel.Text = "Tween Speed: " .. TWEEN_SPEED
+		SpeedBox.Text = tostring(TWEEN_SPEED)
+		saveConfig()
+		print("[HentaiHub] Tween Speed set to", TWEEN_SPEED)
+	else
+		SpeedBox.Text = tostring(TWEEN_SPEED)
+		print("[HentaiHub] Invalid speed (minimum 10)")
+	end
+end
+
+ApplyBtn.MouseButton1Click:Connect(applyTweenSpeed)
+SpeedBox.FocusLost:Connect(function(enter)
+	if enter then applyTweenSpeed() end
+end)
+
+-- Position updater
+local function updateSidePanels()
 	local p = MainFrame.AbsolutePosition
 	local s = MainFrame.AbsoluteSize
 	FilterPanel.Position = UDim2.new(0, p.X + s.X + 8, 0, p.Y + 40)
-end
-local function updateBossPanelPosition()
-	local p = MainFrame.AbsolutePosition
-	local s = MainFrame.AbsoluteSize
 	BossPanel.Position = UDim2.new(0, p.X + s.X + 8, 0, p.Y)
+	LocationsPanel.Position = UDim2.new(0, p.X + s.X + 8, 0, p.Y)
+	SettingsPanel.Position = UDim2.new(0, p.X + s.X + 8, 0, p.Y)
 end
 
 FilterBtn.MouseButton1Click:Connect(function()
 	filterOpen = not filterOpen
 	FilterPanel.Visible = filterOpen
 	FilterBtn.Text = filterOpen and "Filter ←" or "Filter →"
-	if filterOpen then updateFilterPanelPosition() end
+	if filterOpen then updateSidePanels() end
 end)
 FilterClose.MouseButton1Click:Connect(function()
 	filterOpen = false
@@ -867,7 +930,7 @@ BossListBtn.MouseButton1Click:Connect(function()
 	bossListOpen = not bossListOpen
 	BossPanel.Visible = bossListOpen
 	BossListBtn.Text = bossListOpen and "Boss List  ←" or "Boss List  →"
-	if bossListOpen then updateBossPanelPosition() end
+	if bossListOpen then updateSidePanels() end
 end)
 BossClose.MouseButton1Click:Connect(function()
 	bossListOpen = false
@@ -875,14 +938,36 @@ BossClose.MouseButton1Click:Connect(function()
 	BossListBtn.Text = "Boss List  →"
 end)
 
-MainFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
-	if filterOpen then updateFilterPanelPosition() end
-	if bossListOpen then updateBossPanelPosition() end
+LocationsBtn.MouseButton1Click:Connect(function()
+	locationsOpen = not locationsOpen
+	LocationsPanel.Visible = locationsOpen
+	LocationsBtn.Text = locationsOpen and "Locations  ←" or "Locations  →"
+	if locationsOpen then updateSidePanels() end
 end)
-MainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-	if filterOpen then updateFilterPanelPosition() end
-	if bossListOpen then updateBossPanelPosition() end
+LocClose.MouseButton1Click:Connect(function()
+	locationsOpen = false
+	LocationsPanel.Visible = false
+	LocationsBtn.Text = "Locations  →"
 end)
+
+SettingsBtn.MouseButton1Click:Connect(function()
+	settingsOpen = not settingsOpen
+	SettingsPanel.Visible = settingsOpen
+	SettingsBtn.Text = settingsOpen and "Settings  ←" or "Settings  →"
+	if settingsOpen then
+		SpeedBox.Text = tostring(TWEEN_SPEED)
+		SpeedLabel.Text = "Tween Speed: " .. TWEEN_SPEED
+		updateSidePanels()
+	end
+end)
+SetClose.MouseButton1Click:Connect(function()
+	settingsOpen = false
+	SettingsPanel.Visible = false
+	SettingsBtn.Text = "Settings  →"
+end)
+
+MainFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateSidePanels)
+MainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateSidePanels)
 
 -- Confirm Popup
 local ConfirmFrame = Instance.new("Frame")
@@ -933,7 +1018,7 @@ ConfirmYes.MouseButton1Click:Connect(function()
 	if pendingPlayer and HRP then
 		local char = pendingPlayer.Character
 		local root = char and char:FindFirstChild("HumanoidRootPart")
-		if root then HRP.CFrame = root.CFrame + Vector3.new(0, 3, 0) end
+		if root then tweenTo(root.CFrame) end
 	end
 	ConfirmFrame.Visible = false
 	pendingPlayer = nil
@@ -951,11 +1036,13 @@ local function updateSize()
 		ResizeHandle.Visible = false
 		BossPanel.Visible = false
 		FilterPanel.Visible = false
+		LocationsPanel.Visible = false
+		SettingsPanel.Visible = false
 	else
 		Content.Visible = true
 		ResizeHandle.Visible = true
 		if MainFrame.Size.Y.Offset < 150 then
-			MainFrame.Size = UDim2.new(0, MainFrame.Size.X.Offset, 0, 450)
+			MainFrame.Size = UDim2.new(0, MainFrame.Size.X.Offset, 0, 500)
 		end
 	end
 end
@@ -978,7 +1065,7 @@ PlayerHeader.MouseButton1Click:Connect(function()
 	PlayerFrame.Size = UDim2.new(1, 0, 0, playerOpen and 110 or 0)
 end)
 
--- Name Filter Logic
+-- Name Filter
 local function findBestMatch(input)
 	input = input:lower():gsub("^%s*(.-)%s*$", "%1")
 	if input == "" then return nil end
@@ -1026,11 +1113,8 @@ end
 AddBtn.MouseButton1Click:Connect(function()
 	local text = NameBox.Text
 	local corrected = findBestMatch(text)
-	if corrected then
-		NameFilters[corrected] = true
-	elseif text:gsub("%s","") ~= "" then
-		NameFilters[text] = true
-	end
+	if corrected then NameFilters[corrected] = true
+	elseif text:gsub("%s","") ~= "" then NameFilters[text] = true end
 	NameBox.Text = ""
 	refreshNameList()
 	saveConfig()
@@ -1053,11 +1137,7 @@ local function refreshPlayerList()
 			btn.Font = Enum.Font.Gotham
 			btn.TextSize = 12
 			btn.Parent = PlayerFrame
-			if plr.DisplayName ~= plr.Name then
-				btn.Text = plr.DisplayName .. " (@" .. plr.Name .. ")"
-			else
-				btn.Text = plr.Name
-			end
+			btn.Text = plr.DisplayName ~= plr.Name and (plr.DisplayName .. " (@" .. plr.Name .. ")") or plr.Name
 			Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
 			btn.MouseButton1Click:Connect(function()
 				pendingPlayer = plr
@@ -1073,23 +1153,12 @@ Players.PlayerRemoving:Connect(refreshPlayerList)
 refreshPlayerList()
 
 -- Gem Gacha
-local GemGachaCF = CFrame.new(
-	-239.865997, 1471.57495, -5.01026917,
-	2.83718109e-05, -0.70481348, 0.709392726,
-	1, 2.83718109e-05, -1.18017197e-05,
-	-1.18017197e-05, 0.709392726, 0.704813421
-)
+local GemGachaCF = CFrame.new(-239.865997, 1471.57495, -5.01026917)
 GemGachaBtn.MouseButton1Click:Connect(function()
-	if HRP then HRP.CFrame = GemGachaCF end
+	tweenTo(GemGachaCF)
 end)
 
 -- Logic
-local function tpTo(drop)
-	if HRP and drop then
-		HRP.CFrame = drop:GetPivot() + Vector3.new(0, 3, 0)
-	end
-end
-
 local function spamE()
 	task.spawn(function()
 		while spamming and running do
@@ -1142,9 +1211,7 @@ AutoHopCheck.MouseButton1Click:Connect(function()
 	saveConfig()
 end)
 
-HopBtn.MouseButton1Click:Connect(function()
-	smartServerHop()
-end)
+HopBtn.MouseButton1Click:Connect(smartServerHop)
 
 -- Player ESP
 local espFolder = Instance.new("Folder", ScreenGui)
@@ -1221,9 +1288,7 @@ local itemEspObjects = {}
 local function shouldShowItem(drop)
 	local rarity = drop:GetAttribute("Rarity")
 	local anyRarityEnabled = false
-	for _, v in pairs(Rarities) do
-		if v then anyRarityEnabled = true break end
-	end
+	for _, v in pairs(Rarities) do if v then anyRarityEnabled = true break end end
 	if anyRarityEnabled then
 		if not rarity or not Rarities[rarity] then return false end
 	end
@@ -1263,9 +1328,7 @@ local function updateItemEsp()
 			if part then
 				bb.Adornee = part
 				bb.Enabled = true
-				if label then
-					label.Text = string.format("%s\n%s | %dm", drop.Name, rarity, math.floor(dist))
-				end
+				if label then label.Text = string.format("%s\n%s | %dm", drop.Name, rarity, math.floor(dist)) end
 			else
 				bb.Enabled = false
 			end
@@ -1331,21 +1394,19 @@ task.spawn(function()
 	end
 end)
 
--- ========== AUTO RE-ENABLE AFTER HOP ==========
+-- Restore after hop
 task.spawn(function()
-	task.wait(1.5) -- wait a bit after script loads
+	task.wait(1.5)
 	if enabled then
 		spamming = true
 		FarmCheck.Text = "✓"
 		FarmCheck.BackgroundColor3 = Color3.fromRGB(0, 170, 80)
 		spamE()
-		print("[HentaiHub V2] Auto Farm restored")
 	end
 	if autoHopEnabled then
 		AutoHopCheck.Text = "✓"
 		AutoHopCheck.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
 		hopTimer = hopMinutes * 60
-		print("[HentaiHub V2] Auto Hop restored")
 	end
 	if itemEspEnabled then
 		ItemEspCheck.Text = "✓"
@@ -1363,4 +1424,4 @@ task.spawn(function()
 end)
 
 updateSize()
-print("[HentaiHub V2] Loaded | Auto Farm + Filters will persist after hop")
+print("[HentaiHub V2.1] Fully Loaded | Tween Speed now works mid-run")
